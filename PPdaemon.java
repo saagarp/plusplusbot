@@ -17,8 +17,6 @@ public class PPdaemon {
 		bot = new PPbot(args[0], "plusplusbot");
         
         bot.setVerbose(true);
-        bot.connect("irc.freenode.net");
-        bot.joinChannel("#" + args[0]);
     }
     
 }
