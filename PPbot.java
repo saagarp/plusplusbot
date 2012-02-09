@@ -7,7 +7,8 @@ import java.io.*;
 public class PPbot extends PircBot
 {
 
-	final String[][] triggers = {/*{"pot",	"hey, can I get a hit of that?"},
+	final String[][] triggers = {{"do a barrel roll", "you've got an enemy on your tail!"}
+					/*{"pot",	"hey, can I get a hit of that?"},
 					 {"weed",	"hey, can I get a hit of that?"},
 					 {"dongs",	"SMELLS LIKE MAN MEAT"},
 					 {"dong",	"SMELLS LIKE MAN MEAT"}*/};
