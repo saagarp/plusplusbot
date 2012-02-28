@@ -7,8 +7,7 @@ import java.io.*;
 public class PPbot extends PircBot
 {
 
-	final String[][] triggers = {{"do a barrel roll", "you've got an enemy on your tail!"}
-					/*{"pot",	"hey, can I get a hit of that?"},
+	final String[][] triggers = {/*{"pot",	"hey, can I get a hit of that?"},
 					 {"weed",	"hey, can I get a hit of that?"},
 					 {"dongs",	"SMELLS LIKE MAN MEAT"},
 					 {"dong",	"SMELLS LIKE MAN MEAT"}*/};
@@ -50,11 +49,15 @@ public class PPbot extends PircBot
 	Vector<Parse> recentParses = new Vector<Parse>();
 	Hashtable<String, Vector<String> > links = new Hashtable<String, Vector<String> >();
 
+	Hashtable<String, Vector<String> > facts = new Hashtable<String, Vector<String> >();
+
 	String channel;
 	String data_file;
 	String data_file_backup;
 	String link_file;
 	String link_file_backup;
+	String fact_file;
+	String fact_file_backup;
 
     public PPbot(String channel, String name) {
 		this.channel = channel;
@@ -62,6 +65,8 @@ public class PPbot extends PircBot
 		data_file_backup = channel + ".dat.bak";
 		link_file = channel + ".link";
 		link_file_backup = channel + ".link.bak";
+		fact_file = channel + ".fact";
+		fact_file_backup = channel + ".fact.bak";
 	
 		this.setAutoNickChange(true);
         this.setName(name);
@@ -126,16 +131,6 @@ public class PPbot extends PircBot
 			values.put(key, new Integer(values.get(key).intValue() + delta));
 
 		displayValue(channel, key);
-
-		// find any dependent keys, and display them too
-		for(Enumeration<String> linkkeys = links.keys(); linkkeys.hasMoreElements();)
-		{
-			String dest = linkkeys.nextElement();
-			if(links.get(dest).contains(key))
-			{
-				displayValue(channel, dest);
-			}
-		}
 	}
 
 	// returns true if keys is not a unique set
@@ -157,6 +152,7 @@ public class PPbot extends PircBot
 		if(message.startsWith(commandHeader))
 		{
 			String command = message.substring(commandHeader.length()+1).trim().toLowerCase();
+			String commandCase = message.substring(commandHeader.length()+1).trim();
 			// top or '?' => default query
 			System.out.println("command = " + command);
 
@@ -234,12 +230,12 @@ public class PPbot extends PircBot
 					if(!postUpdates.contains(dest))
 						postUpdates.add(dest);
 
-					sendMessage(channel, line_header() + "I have linked the key \"" + dest + "\" so that it is now dependent on \"" + src + "\"!");
+					sendMessage(sender, line_header() + "I have linked the key \"" + dest + "\" so that it is now dependent on \"" + src + "\"!");
 				}
 
 				for(int i = 0; i < postUpdates.size(); i++)
 				{
-					displayValue(channel, postUpdates.elementAt(i));
+					displayValue(sender, postUpdates.elementAt(i));
 				}
 
 			} else if(command.startsWith("what the fuck is the score of") || command.startsWith("what the fuck is the value of"))
@@ -258,6 +254,71 @@ public class PPbot extends PircBot
 			} else if(command.equalsIgnoreCase("rimjob"))
 			{
 				sendMessage(channel, line_header() + "ba-dum-tush!");
+			} else if(command.startsWith("fact"))
+			{
+				String topic = "";
+				// is there a subtopic?
+				if(command.startsWith("fact."))
+				{
+					String tmp = command.substring(command.indexOf("fact.") + ("fact.").length());
+					topic = tmp.trim();
+				}
+
+				if(topic.isEmpty())
+				{
+					// pick a random topic
+					int whichKey = (int)(facts.size()*Math.random());
+					int tmp;
+					Enumeration<String> key = facts.keys();
+					for(tmp = 0; tmp != whichKey; tmp++)
+						key.nextElement();
+
+					topic = key.nextElement();
+				}
+
+
+				{
+					Vector<String> tmp = facts.get(topic);
+					if((tmp == null) || (tmp.size() == 0))
+					{
+						sendMessage(channel, line_header() + "Sorry, but unfortunately I don't know anything about " + topic + ". :(");
+		
+					} else
+					{
+						int whichFact = (int)(tmp.size()*Math.random());
+						sendMessage(channel, line_header() + "Let me tell you something random about " + topic + "! " + tmp.elementAt(whichFact));
+					}
+				}
+
+			} else if(command.startsWith("addfact"))
+			{
+				String topic = command.substring(command.indexOf("addfact.") + ("addfact.").length());
+				topic = topic.substring(0, topic.indexOf(" "));
+
+				if(topic.length() == 0)
+				{
+					sendMessage(sender, line_header() + "sorry, but you need to specify a topic for your fact! Something like:");
+					sendMessage(sender, getNick() + ": addfact.cats Cats have nine lives.");
+				} else
+				{
+					String fact = commandCase.substring(command.indexOf("addfact"));
+					fact = fact.substring(fact.indexOf(" ")).trim();
+
+					if(facts.get(topic) == null)
+					{
+						Vector<String> tmp = new Vector<String>();
+						tmp.add(fact);
+						facts.put(topic, tmp);
+					} else
+					{
+						Vector<String> tmp = facts.get(topic);
+
+						tmp.add(fact);
+						facts.put(topic, tmp);
+					}
+
+					sendMessage(sender, line_header() + "Thanks! I now know " + facts.get(topic).size() + " thing[s] about " + topic + "!");
+				}
 			} else
 			{
 				sendMessage(sender, line_header() + "sorry, but I didn't understand your command!");
@@ -365,6 +426,30 @@ public class PPbot extends PircBot
 				}
 				out.close();
 			}
+
+			{
+				File f = new File(fact_file);
+				if(f.exists())
+					f.renameTo(new File(fact_file_backup));
+				else
+					System.out.println("warning: fact file didn't exist");
+
+				// write new fact file
+				FileWriter outf = new FileWriter(fact_file);
+				PrintWriter out = new PrintWriter(outf);
+				for(Enumeration<String> keys = facts.keys(); keys.hasMoreElements(); )
+				{
+					String key = keys.nextElement();
+					Vector<String> sources = facts.get(key);
+					for(String value : sources)
+					{
+						out.println(key);
+						out.println(value);
+					}
+				}
+				out.close();
+			}
+
 		} catch(IOException ioe)
 		{
 			System.err.println("ioexception writing data: " + ioe);
@@ -444,6 +529,47 @@ public class PPbot extends PircBot
 				}
 		
 				System.out.println("restored " + lcount + " links on launch");
+			}
+			{
+				int lcount = 0;
+				File f = new File(fact_file);
+				if(!f.exists())
+				{
+					System.out.println("warning: fact file didn't exist, ignoring");
+					return;
+				}
+
+				// read facts
+				FileReader inf = new FileReader(f);
+				BufferedReader in = new BufferedReader(inf);
+			
+				String line;
+				while((line = in.readLine()) != null)
+				{
+					String key = line;
+					line = in.readLine();
+					if(line == null)
+					{
+						System.err.println("data file error: no target for key " + key);
+						System.exit(-1);
+					}
+
+					if(facts.get(key) == null)
+					{
+						Vector<String> targets = new Vector<String>();
+						targets.add(line);
+						facts.put(key, targets);
+					} else
+					{
+						Vector<String> targets = facts.get(key);
+						targets.add(line);
+						facts.put(key, targets);
+					}
+
+					lcount++;
+				}
+		
+				System.out.println("restored " + lcount + " facts on launch");
 			}
 		} catch(IOException ioe)
 		{
