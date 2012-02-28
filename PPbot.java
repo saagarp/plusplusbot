@@ -3,6 +3,8 @@ import java.util.*;
 import java.text.SimpleDateFormat;
 import java.util.regex.*;
 import java.io.*;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class PPbot extends PircBot
 {
@@ -44,6 +46,7 @@ public class PPbot extends PircBot
 	}
 
 	static final long RECENT_WINDOW_MILLISECONDS = 30 * 60 * 1000; // 30 minutes
+	static final long RANDOM_FACT_TIMER_MILLISECONDS = 15 * 60 * 1000; // 15 minutes
 
 	Hashtable<String, Integer> values = new Hashtable<String, Integer>();
 	Vector<Parse> recentParses = new Vector<Parse>();
@@ -58,6 +61,8 @@ public class PPbot extends PircBot
 	String link_file_backup;
 	String fact_file;
 	String fact_file_backup;
+
+	Timer factTimer;
 
     public PPbot(String channel, String name) {
 		this.channel = channel;
@@ -75,6 +80,9 @@ public class PPbot extends PircBot
 		restoreData();
 
 		onDisconnect();
+
+		factTimer = new Timer();
+		factTimer.schedule(new FactTask(), RANDOM_FACT_TIMER_MILLISECONDS);
     }
 
 	public Vector<String> getMatches(String regex, String text)
@@ -266,18 +274,9 @@ public class PPbot extends PircBot
 
 				if(topic.isEmpty())
 				{
-					// pick a random topic
-					int whichKey = (int)(facts.size()*Math.random());
-					int tmp;
-					Enumeration<String> key = facts.keys();
-					for(tmp = 0; tmp != whichKey; tmp++)
-						key.nextElement();
-
-					topic = key.nextElement();
-				}
-
-
-				{
+					sendRandomFact();
+				} else
+{
 					Vector<String> tmp = facts.get(topic);
 					if((tmp == null) || (tmp.size() == 0))
 					{
@@ -677,5 +676,32 @@ public class PPbot extends PircBot
 	public void displayValue(String channel, String key)
 	{
 		sendMessage(channel, line_header() + valueString(key) + "\n");
+	}
+
+	public void sendRandomFact()
+	{
+		// make list of all facts
+		Vector<String> allfacts = new Vector<String>();
+
+		Enumeration<String> key = facts.keys();
+		while(key.hasMoreElements())
+		{
+			String topic = key.nextElement();
+
+			Vector<String> tmp = facts.get(topic);
+			for(int i = 0; i < tmp.size(); i++)
+				allfacts.add(topic + "! " + tmp.elementAt(i));
+		}
+
+		int whichFact = (int)(allfacts.size()*Math.random());
+		sendMessage("#" + channel, line_header() + "Let me tell you something random about " + allfacts.elementAt(whichFact));
+	}
+
+	class FactTask extends TimerTask
+	{
+		public void run()
+		{
+			sendRandomFact();
+		}
 	}
 }
