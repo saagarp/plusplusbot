@@ -46,7 +46,7 @@ public class PPbot extends PircBot
 	}
 
 	static final long RECENT_WINDOW_MILLISECONDS = 30 * 60 * 1000; // 30 minutes
-	static final long RANDOM_FACT_TIMER_MILLISECONDS = 15 * 60 * 1000; // 15 minutes
+	static final long RANDOM_FACT_TIMER_MILLISECONDS = 30 * 60 * 1000; // 15 minutes
 
 	Hashtable<String, Integer> values = new Hashtable<String, Integer>();
 	Vector<Parse> recentParses = new Vector<Parse>();
@@ -246,6 +246,59 @@ public class PPbot extends PircBot
 					displayValue(sender, postUpdates.elementAt(i));
 				}
 
+			} else if(command.contains("-="))
+			{
+				Vector<String> postUpdates = new Vector<String>();
+
+				// parse out the two strings
+				Pattern p = Pattern.compile("(" + KEY_REGEX + ")\\s*\\-=\\s*(" + KEY_REGEX + ")");
+				Matcher m = p.matcher(message);
+				while(m.find())
+				{
+					System.out.println("unlinking " + m.group(1) + " from " + m.group(2));
+
+					String dest = m.group(1).toLowerCase();
+					String src = m.group(2).toLowerCase();
+
+					if(dest.equals(src))
+					{
+							sendMessage(sender, line_header() + "sorry, but " + src + " can't be linked to itself!");
+							continue;
+					} else if(dest.equalsIgnoreCase(sender))
+					{
+							sendMessage(sender, line_header() + "sorry, but you can't unlink things to yourself!");
+							continue;
+					}
+
+					if(links.get(dest) == null)
+					{
+						sendMessage(sender, line_header() + "sorry, but " + src + " isn't linked to " + dest);
+					} else
+					{
+						Vector<String> targets = links.get(dest);
+
+						if(targets.contains(src))
+						{
+							targets.remove(src);
+							links.put(dest, targets);
+						} else
+						{
+							sendMessage(sender, line_header() + "sorry, but " + src + " isn't linked to " + dest);
+							continue;
+						}
+					}
+
+					if(!postUpdates.contains(dest))
+						postUpdates.add(dest);
+
+					sendMessage(sender, line_header() + "I have unlinked the key \"" + dest + "\" so that it is no longer dependent on \"" + src + "\"!");
+				}
+
+				for(int i = 0; i < postUpdates.size(); i++)
+				{
+					displayValue(sender, postUpdates.elementAt(i));
+				}
+
 			} else if(command.startsWith("what the fuck is the score of") || command.startsWith("what the fuck is the value of"))
 			{
 				String arg = command.substring((new String("what the fuck is the score of")).length()).trim().toLowerCase();
@@ -262,6 +315,31 @@ public class PPbot extends PircBot
 			} else if(command.equalsIgnoreCase("rimjob"))
 			{
 				sendMessage(channel, line_header() + "ba-dum-tush!");
+			} else if(command.startsWith("facts about "))
+			{
+				// subtopic
+				String topic = command.substring(command.indexOf("facts about ") + ("facts about ").length());
+				topic = topic.trim();
+
+				if(topic.isEmpty())
+				{
+					sendMessage(sender, line_header() + "sorry, but you need to specify a topic for your query!");
+				} else
+				{
+					Vector<String> tmp = facts.get(topic);
+					if((tmp == null) || (tmp.size() == 0))
+					{
+						sendMessage(channel, line_header() + "Sorry, but unfortunately I don't know anything about " + topic + ". :(");
+		
+					} else
+					{
+						String factString = "Wait, you want to know everything about " + topic + "? Well, I know " + tmp.size() + " things. Here goes. ";
+						for(int i = 0; i <tmp.size(); i++)
+							factString += (i+1) + ") " + tmp.elementAt(i) + (((i+1) < tmp.size()) ? "; " : "");
+						sendMessage(channel, line_header() + factString);
+					}
+				}
+
 			} else if(command.startsWith("fact"))
 			{
 				String topic = "";
@@ -269,6 +347,10 @@ public class PPbot extends PircBot
 				if(command.startsWith("fact."))
 				{
 					String tmp = command.substring(command.indexOf("fact.") + ("fact.").length());
+					topic = tmp.trim();
+				} else if(command.startsWith("fact about "))
+				{
+					String tmp = command.substring(command.indexOf("fact about ") + ("fact about ").length());
 					topic = tmp.trim();
 				}
 
