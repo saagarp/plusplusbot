@@ -46,7 +46,7 @@ public class PPbot extends PircBot
 	}
 
 	static final long RECENT_WINDOW_MILLISECONDS = 30 * 60 * 1000; // 30 minutes
-	static final long RANDOM_FACT_TIMER_MILLISECONDS = 30 * 60 * 1000; // 15 minutes
+	static final long RANDOM_FACT_TIMER_MILLISECONDS = 60 * 60 * 1000; // 15 minutes
 
 	Hashtable<String, Integer> values = new Hashtable<String, Integer>();
 	Vector<Parse> recentParses = new Vector<Parse>();
