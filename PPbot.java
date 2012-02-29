@@ -367,7 +367,7 @@ public class PPbot extends PircBot
 					} else
 					{
 						int whichFact = (int)(tmp.size()*Math.random());
-						sendMessage(channel, line_header() + "Let me tell you something random about " + topic + "! " + tmp.elementAt(whichFact));
+						sendMessage(channel, line_header() + "Let me tell you something random about " + topic + "! Fact #" + (whichFact+1) + ": " + tmp.elementAt(whichFact));
 					}
 				}
 
@@ -400,6 +400,50 @@ public class PPbot extends PircBot
 
 					sendMessage(sender, line_header() + "Thanks! I now know " + facts.get(topic).size() + " thing[s] about " + topic + "!");
 				}
+			} else if(command.startsWith("deletefact"))
+			{
+				String topic = command.substring(command.indexOf("deletefact.") + ("deletefact.").length());
+				topic = topic.substring(0, topic.indexOf(" "));
+
+				if(topic.length() == 0)
+				{
+					sendMessage(sender, line_header() + "sorry, but you need to specify a topic for your fact! Something like:");
+					sendMessage(sender, getNick() + ": deletefact.cats 3");
+				} else
+				{
+					String whichFact = commandCase.substring(command.indexOf("deletefact"));
+					whichFact = whichFact.substring(whichFact.indexOf(" ")).trim();
+					
+					int x = 0;
+					try
+					{
+						x = Integer.parseInt(whichFact) - 1;
+
+						if(facts.get(topic) == null)
+						{
+							sendMessage(sender, line_header() + "sorry, but I don't know any facts about that topic!");
+						} else
+						{
+							Vector<String> tmp = facts.get(topic);
+
+							if((x < 0) || (x > tmp.size()))
+							{
+								sendMessage(sender, line_header() + "sorry, but the fact you want me to delete doesn't exist. I only know " + tmp.size() + " things about " + topic);
+							} else
+							{
+								sendMessage(sender, line_header() + "I have removed the fact \"" + tmp.elementAt(x) + "\" from topic " + topic + ". Hope you're not changing history for the worse. I now know " + (tmp.size() - 1) + " thing[s] about " + topic + ".");
+								tmp.removeElementAt(x);
+								facts.put(topic, tmp);
+							}
+						}
+
+					} catch(Exception e)
+					{
+						sendMessage(sender, line_header() + "sorry, but you need to specify a fact number to remove! Something like:");
+						sendMessage(sender, getNick() + ": deletefact.cats 3");
+					}
+				}
+
 			} else
 			{
 				sendMessage(sender, line_header() + "sorry, but I didn't understand your command!");
@@ -772,7 +816,7 @@ public class PPbot extends PircBot
 
 			Vector<String> tmp = facts.get(topic);
 			for(int i = 0; i < tmp.size(); i++)
-				allfacts.add(topic + "! " + tmp.elementAt(i));
+				allfacts.add(topic + "! Fact #" + (i+1) + ": " + tmp.elementAt(i));
 		}
 
 		int whichFact = (int)(allfacts.size()*Math.random());
