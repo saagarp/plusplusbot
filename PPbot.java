@@ -370,6 +370,7 @@ public class PPbot extends PircBot
 				{
 					factIndex = topic.substring(topic.indexOf(" ") + 1);
 					topic = topic.substring(0, topic.indexOf(" "));
+					System.out.println("fact index is " + factIndex);
 				}
 
 				try
@@ -395,7 +396,6 @@ public class PPbot extends PircBot
 							sendMessage(channel, line_header() + "Let me tell you something random about " + topic + "! Fact #" + (whichFact+1) + ": " + tmp.elementAt(whichFact));
 						} else
 						{
-							whichFact = (int)(tmp.size()*Math.random());
 							if(whichFact < 0)
 								whichFact = 0;
 							if(whichFact >= tmp.size())
