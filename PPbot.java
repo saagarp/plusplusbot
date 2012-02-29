@@ -380,7 +380,7 @@ public class PPbot extends PircBot
 
 				if(topic.isEmpty())
 				{
-					sendRandomFact();
+					sendRandomFact(channel);
 				} else
 {
 					Vector<String> tmp = facts.get(topic);
@@ -511,10 +511,18 @@ public class PPbot extends PircBot
 		}
 	}
     
+    public void onPrivateMessage(String sender, String login, String hostname, String message)
+	{
+		onMessage(sender, sender, login, hostname, message);
+
+	}
+
     public void onMessage(String channel, String sender, String login, String hostname, String message)
 	{
 		if(sender.equals(getNick()))
 			return;
+
+		System.out.println("message on channel " + channel);
 
 		Vector<String> matchplus    = getMatches("(" + KEY_REGEX + ")\\+\\+", message);
 		Vector<String> matchminus   = getMatches("(" + KEY_REGEX + ")--", message);
@@ -864,7 +872,7 @@ public class PPbot extends PircBot
 		sendMessage(channel, line_header() + valueString(key) + "\n");
 	}
 
-	public void sendRandomFact()
+	public void sendRandomFact(String channel)
 	{
 		// make list of all facts
 		Vector<String> allfacts = new Vector<String>();
@@ -880,14 +888,14 @@ public class PPbot extends PircBot
 		}
 
 		int whichFact = (int)(allfacts.size()*Math.random());
-		sendMessage("#" + channel, line_header() + "Let me tell you something random about " + allfacts.elementAt(whichFact));
+		sendMessage(channel, line_header() + "Let me tell you something random about " + allfacts.elementAt(whichFact));
 	}
 
 	class FactTask extends TimerTask
 	{
 		public void run()
 		{
-			sendRandomFact();
+			sendRandomFact("#" + channel);
 		}
 	}
 }
