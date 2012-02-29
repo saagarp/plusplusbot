@@ -82,7 +82,7 @@ public class PPbot extends PircBot
 		onDisconnect();
 
 		factTimer = new Timer();
-		factTimer.schedule(new FactTask(), RANDOM_FACT_TIMER_MILLISECONDS);
+		factTimer.schedule(new FactTask(), 15 * 1000, RANDOM_FACT_TIMER_MILLISECONDS);
     }
 
 	public Vector<String> getMatches(String regex, String text)
@@ -477,7 +477,33 @@ public class PPbot extends PircBot
 						sendMessage(sender, getNick() + ": deletefact.cats 3");
 					}
 				}
+			} else if(command.equals("stats") || command.equals("statistics"))
+			{
+				String tmp = "Let me tell you what I know. I am keeping track of " + values.size() + " individual scores. ";
+				
+				{
+					int nlinks = 0;
+					Enumeration<String> key = links.keys();
+					while(key.hasMoreElements())
+					{
+						String k = key.nextElement();
+						nlinks += links.get(k).size();
+					}
+					tmp += "I am also keeping track of " + nlinks + " dependencies between scores. ";
+				}
 
+				{
+					int nfacts = 0;
+					Enumeration<String> key = facts.keys();
+					while(key.hasMoreElements())
+					{
+						String k = key.nextElement();
+						nfacts += facts.get(k).size();
+					}
+					tmp += "Finally, I have been trained to recite " + nfacts + " facts about " + facts.size() + " topics! Isn't THAT impressive?";
+					sendMessage(channel, line_header() + tmp);
+				}
+					
 			} else
 			{
 				sendMessage(sender, line_header() + "sorry, but I didn't understand your command!");
