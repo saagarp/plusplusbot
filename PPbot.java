@@ -315,11 +315,19 @@ public class PPbot extends PircBot
 			} else if(command.equalsIgnoreCase("rimjob"))
 			{
 				sendMessage(channel, line_header() + "ba-dum-tush!");
-			} else if(command.startsWith("facts about "))
+			} else if(command.startsWith("facts about ") || command.startsWith("facts."))
 			{
+				String topic = "";
 				// subtopic
-				String topic = command.substring(command.indexOf("facts about ") + ("facts about ").length());
-				topic = topic.trim();
+				if(command.startsWith("facts about "))
+				{
+					topic = command.substring(command.indexOf("facts about ") + ("facts about ").length());
+					topic = topic.trim();
+				} else if(command.startsWith("facts."))
+				{
+					topic = command.substring(command.indexOf("facts.") + ("facts.").length());
+					topic = topic.trim();
+				}
 
 				if(topic.isEmpty())
 				{
@@ -342,17 +350,32 @@ public class PPbot extends PircBot
 
 			} else if(command.startsWith("fact"))
 			{
-				String topic = "";
+				String topic = "", factIndex = "";
+				int whichFact = -1;
+
 				// is there a subtopic?
 				if(command.startsWith("fact."))
 				{
 					String tmp = command.substring(command.indexOf("fact.") + ("fact.").length());
 					topic = tmp.trim();
+
 				} else if(command.startsWith("fact about "))
 				{
 					String tmp = command.substring(command.indexOf("fact about ") + ("fact about ").length());
 					topic = tmp.trim();
 				}
+
+				// if there's following text, try and parse it to a number
+				if(topic.contains(" "))
+				{
+					factIndex = topic.substring(topic.indexOf(" ") + 1);
+					topic = topic.substring(0, topic.indexOf(" "));
+				}
+
+				try
+				{
+					whichFact = Integer.parseInt(factIndex) - 1;
+				} catch(Exception e) {};
 
 				if(topic.isEmpty())
 				{
@@ -366,8 +389,19 @@ public class PPbot extends PircBot
 		
 					} else
 					{
-						int whichFact = (int)(tmp.size()*Math.random());
-						sendMessage(channel, line_header() + "Let me tell you something random about " + topic + "! Fact #" + (whichFact+1) + ": " + tmp.elementAt(whichFact));
+						if(whichFact == -1)
+						{
+							whichFact = (int)(tmp.size()*Math.random());
+							sendMessage(channel, line_header() + "Let me tell you something random about " + topic + "! Fact #" + (whichFact+1) + ": " + tmp.elementAt(whichFact));
+						} else
+						{
+							whichFact = (int)(tmp.size()*Math.random());
+							if(whichFact < 0)
+								whichFact = 0;
+							if(whichFact >= tmp.size())
+								whichFact = tmp.size()-1;
+							sendMessage(channel, line_header() + "Let me tell you fact #" + (whichFact+1) + " about " + topic + ": " + tmp.elementAt(whichFact));
+						}
 					}
 				}
 
