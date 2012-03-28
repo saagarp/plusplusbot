@@ -14,6 +14,8 @@ public class PPbot extends PircBot
 					 {"dongs",	"SMELLS LIKE MAN MEAT"},
 					 {"dong",	"SMELLS LIKE MAN MEAT"}*/};
 
+	final String[] blacklistUsers = {"dongbot"};
+	final String[] blacklistKeys = {"gogurt"};
 
 	static final String KEY_REGEX = "[\\[\\]\\w\\._|]{2,}";
 
@@ -101,6 +103,15 @@ public class PPbot extends PircBot
 
 	public void applyMatch(String sender, String channel, String key, int delta, boolean checkExpiry)
 	{
+		for(int i = 0; i < blacklistKeys.length; i++)
+		{
+			if(key.equalsIgnoreCase(blacklistKeys[i]))
+			{
+				sendMessage(sender, line_header() + "sorry, but " + key +" has been identified as a topic of great contention and been blacklisted");
+				return;
+			}
+		}
+
 		if(checkExpiry && (sender != getNick()))
 		{
 			// expire anything before expiry_millis
@@ -521,6 +532,12 @@ public class PPbot extends PircBot
 	{
 		if(sender.equals(getNick()))
 			return;
+
+		for(int i = 0; i < blacklistUsers.length; i++)
+		{
+			if(sender.equalsIgnoreCase(blacklistUsers[i]))
+				return;
+		}
 
 		System.out.println("message on channel " + channel);
 
