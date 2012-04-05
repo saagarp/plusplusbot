@@ -3,21 +3,23 @@ import java.util.*;
 import java.text.SimpleDateFormat;
 import java.util.regex.*;
 import java.io.*;
-import java.util.Timer;
-import java.util.TimerTask;
 
 public class PPbot extends PircBot
 {
 
-	final String[][] triggers = {/*{"pot",	"hey, can I get a hit of that?"},
-					 {"weed",	"hey, can I get a hit of that?"},
-					 {"dongs",	"SMELLS LIKE MAN MEAT"},
-					 {"dong",	"SMELLS LIKE MAN MEAT"}*/};
+	final String[][] triggers = {/*{"", "pot",	"hey, can I get a hit of that?"},
+					 {"", "weed",	"hey, can I get a hit of that?"},
+					 {"", "dongs",	"SMELLS LIKE MAN MEAT"},
+					 {"", "dong",	"SMELLS LIKE MAN MEAT"},*/
+					{"jtb", "show", "jonthebastard.mentions.a.show++"},
+					{"jonthebastard", "show", "jonthebastard.mentions.a.show++"},
+					{"jtb", "concert", "jonthebastard.mentions.a.show++"},
+					{"jonthebastard", "concert", "jonthebastard.mentions.a.show++"}};
 
 	final String[] blacklistUsers = {"dongbot"};
 	final String[] blacklistKeys = {"gogurt"};
 
-	static final String KEY_REGEX = "[\\[\\]\\w\\._|]{2,}";
+	static final String KEY_REGEX = "[\\[\\]\\w\\._-|\\{\\}]{2,}";
 
 	class Parse
 	{
@@ -64,8 +66,6 @@ public class PPbot extends PircBot
 	String fact_file;
 	String fact_file_backup;
 
-	Timer factTimer;
-
     public PPbot(String channel, String name) {
 		this.channel = channel;
 		data_file = channel + ".dat";
@@ -82,9 +82,6 @@ public class PPbot extends PircBot
 		restoreData();
 
 		onDisconnect();
-
-		factTimer = new Timer();
-		factTimer.schedule(new FactTask(), 15 * 1000, RANDOM_FACT_TIMER_MILLISECONDS);
     }
 
 	public Vector<String> getMatches(String regex, String text)
@@ -579,12 +576,20 @@ public class PPbot extends PircBot
 		// process triggers
 		for(int i = 0; i < triggers.length; i++)
 		{
-			String patternString = "\\b" + triggers[i][0].toLowerCase() + "\\b";
+			String patternSender = triggers[i][0];
+			if(patternSender.length() != 0)
+			{
+				if(!sender.contains(patternSender))
+					continue;
+			}
+
+			String patternString = "\\b" + triggers[i][1].toLowerCase() + "\\b";
 			Pattern pattern = Pattern.compile(patternString);
 			Matcher matcher = pattern.matcher(message.toLowerCase());
 			if(matcher.find())
 			{
-				sendMessage(channel, sender + ": " + triggers[i][1]);
+				sendMessage(channel, sender + ": " + triggers[i][2]);
+				onMessage(channel, getNick() + "_auto", getNick(), "", triggers[i][2]);
 			}
 		}
 
@@ -906,13 +911,5 @@ public class PPbot extends PircBot
 
 		int whichFact = (int)(allfacts.size()*Math.random());
 		sendMessage(channel, line_header() + "Let me tell you something random about " + allfacts.elementAt(whichFact));
-	}
-
-	class FactTask extends TimerTask
-	{
-		public void run()
-		{
-			sendRandomFact("#" + channel);
-		}
 	}
 }
