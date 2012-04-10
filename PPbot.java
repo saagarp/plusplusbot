@@ -23,7 +23,7 @@ public class PPbot extends PircBot
 	final String[] blacklistUsers = {"dongbot"};
 	final String[] blacklistKeys = {"gogurt"};
 
-	static final String KEY_REGEX = "[\\[\\]\\w\\._-|\\{\\}]{2,}";
+	static final String KEY_REGEX = "[\\[\\]\\w\\._\\-|\\{\\}]{2,}";
 
 	class Parse
 	{
