@@ -13,8 +13,12 @@ public class PPbot extends PircBot
 					 {"", "dong",	"SMELLS LIKE MAN MEAT"},*/
 					{"jtb", "show", "jonthebastard.mentions.a.show++"},
 					{"jonthebastard", "show", "jonthebastard.mentions.a.show++"},
+					{"jtb", "shows", "jonthebastard.mentions.a.show++"},
+					{"jonthebastard", "shows", "jonthebastard.mentions.a.show++"},
 					{"jtb", "concert", "jonthebastard.mentions.a.show++"},
-					{"jonthebastard", "concert", "jonthebastard.mentions.a.show++"}};
+					{"jonthebastard", "concert", "jonthebastard.mentions.a.show++"},
+					{"jtb", "concerts", "jonthebastard.mentions.a.show++"},
+					{"jonthebastard", "concerts", "jonthebastard.mentions.a.show++"}};
 
 	final String[] blacklistUsers = {"dongbot"};
 	final String[] blacklistKeys = {"gogurt"};
