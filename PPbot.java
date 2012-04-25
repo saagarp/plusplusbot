@@ -108,7 +108,7 @@ public class PPbot extends PircBot
 		{
 			if(key.equalsIgnoreCase(blacklistKeys[i]))
 			{
-				sendMessage(sender, line_header() + "sorry, but " + key +" has been identified as a topic of great contention and been blacklisted");
+				local_sendMessage(sender, line_header() + "sorry, but " + key +" has been identified as a topic of great contention and been blacklisted");
 				return;
 			}
 		}
@@ -132,7 +132,7 @@ public class PPbot extends PircBot
 					Date expiry = new Date(current.when - expiry_millis);
 					SimpleDateFormat format = new SimpleDateFormat("mm:ss", Locale.US);
 					format.setTimeZone(TimeZone.getTimeZone("GMT"));
-					sendMessage(sender, line_header() + "sorry, " + sender + ", but you can't change \"" + key + "\" for another " + format.format(expiry));
+					local_sendMessage(sender, line_header() + "sorry, " + sender + ", but you can't change \"" + key + "\" for another " + format.format(expiry));
 					return;
 				}
 			}
@@ -191,7 +191,7 @@ public class PPbot extends PircBot
 					sendStatistics(channel, n);
 				} catch(Exception e)
 				{
-					sendMessage(sender, line_header() + "sorry, but I didn't understand the argument to that command!");
+					local_sendMessage(sender, line_header() + "sorry, but I didn't understand the argument to that command!");
 					e.printStackTrace();
 				}
 
@@ -216,11 +216,11 @@ public class PPbot extends PircBot
 
 					if(dest.equals(src))
 					{
-							sendMessage(sender, line_header() + "sorry, but " + src + " can't be linked to itself!");
+							local_sendMessage(sender, line_header() + "sorry, but " + src + " can't be linked to itself!");
 							continue;
 					} else if(dest.equalsIgnoreCase(sender))
 					{
-							sendMessage(sender, line_header() + "sorry, but you can't link things to yourself!");
+							local_sendMessage(sender, line_header() + "sorry, but you can't link things to yourself!");
 							continue;
 					}
 
@@ -239,7 +239,7 @@ public class PPbot extends PircBot
 
 						if(targets.contains(src))
 						{
-							sendMessage(sender, line_header() + "sorry, but " + src + " is already linked to " + dest);
+							local_sendMessage(sender, line_header() + "sorry, but " + src + " is already linked to " + dest);
 							continue;
 						}
 
@@ -250,7 +250,7 @@ public class PPbot extends PircBot
 					if(!postUpdates.contains(dest))
 						postUpdates.add(dest);
 
-					sendMessage(sender, line_header() + "I have linked the key \"" + dest + "\" so that it is now dependent on \"" + src + "\"!");
+					local_sendMessage(sender, line_header() + "I have linked the key \"" + dest + "\" so that it is now dependent on \"" + src + "\"!");
 				}
 
 				for(int i = 0; i < postUpdates.size(); i++)
@@ -274,17 +274,17 @@ public class PPbot extends PircBot
 
 					if(dest.equals(src))
 					{
-							sendMessage(sender, line_header() + "sorry, but " + src + " can't be linked to itself!");
+							local_sendMessage(sender, line_header() + "sorry, but " + src + " can't be linked to itself!");
 							continue;
 					} else if(dest.equalsIgnoreCase(sender))
 					{
-							sendMessage(sender, line_header() + "sorry, but you can't unlink things to yourself!");
+							local_sendMessage(sender, line_header() + "sorry, but you can't unlink things to yourself!");
 							continue;
 					}
 
 					if(links.get(dest) == null)
 					{
-						sendMessage(sender, line_header() + "sorry, but " + src + " isn't linked to " + dest);
+						local_sendMessage(sender, line_header() + "sorry, but " + src + " isn't linked to " + dest);
 					} else
 					{
 						Vector<String> targets = links.get(dest);
@@ -295,7 +295,7 @@ public class PPbot extends PircBot
 							links.put(dest, targets);
 						} else
 						{
-							sendMessage(sender, line_header() + "sorry, but " + src + " isn't linked to " + dest);
+							local_sendMessage(sender, line_header() + "sorry, but " + src + " isn't linked to " + dest);
 							continue;
 						}
 					}
@@ -303,7 +303,7 @@ public class PPbot extends PircBot
 					if(!postUpdates.contains(dest))
 						postUpdates.add(dest);
 
-					sendMessage(sender, line_header() + "I have unlinked the key \"" + dest + "\" so that it is no longer dependent on \"" + src + "\"!");
+					local_sendMessage(sender, line_header() + "I have unlinked the key \"" + dest + "\" so that it is no longer dependent on \"" + src + "\"!");
 				}
 
 				for(int i = 0; i < postUpdates.size(); i++)
@@ -323,10 +323,10 @@ public class PPbot extends PircBot
 
 			} else if(command.equalsIgnoreCase("rimshot"))
 			{
-				sendMessage(channel, line_header() + "ba-dum-tish!");
+				local_sendMessage(channel, line_header() + "ba-dum-tish!");
 			} else if(command.equalsIgnoreCase("rimjob"))
 			{
-				sendMessage(channel, line_header() + "ba-dum-tush!");
+				local_sendMessage(channel, line_header() + "ba-dum-tush!");
 			} else if(command.startsWith("facts about ") || command.startsWith("facts."))
 			{
 				String topic = "";
@@ -343,20 +343,20 @@ public class PPbot extends PircBot
 
 				if(topic.isEmpty())
 				{
-					sendMessage(sender, line_header() + "sorry, but you need to specify a topic for your query!");
+					local_sendMessage(sender, line_header() + "sorry, but you need to specify a topic for your query!");
 				} else
 				{
 					Vector<String> tmp = facts.get(topic);
 					if((tmp == null) || (tmp.size() == 0))
 					{
-						sendMessage(channel, line_header() + "Sorry, but unfortunately I don't know anything about " + topic + ". :(");
+						local_sendMessage(channel, line_header() + "Sorry, but unfortunately I don't know anything about " + topic + ". :(");
 		
 					} else
 					{
 						String factString = "Wait, you want to know everything about " + topic + "? Well, I know " + tmp.size() + " things. Here goes. ";
 						for(int i = 0; i <tmp.size(); i++)
 							factString += (i+1) + ") " + tmp.elementAt(i) + (((i+1) < tmp.size()) ? "; " : "");
-						sendMessage(channel, line_header() + factString);
+						local_sendMessage(channel, line_header() + factString);
 					}
 				}
 
@@ -398,21 +398,21 @@ public class PPbot extends PircBot
 					Vector<String> tmp = facts.get(topic);
 					if((tmp == null) || (tmp.size() == 0))
 					{
-						sendMessage(channel, line_header() + "Sorry, but unfortunately I don't know anything about " + topic + ". :(");
+						local_sendMessage(channel, line_header() + "Sorry, but unfortunately I don't know anything about " + topic + ". :(");
 		
 					} else
 					{
 						if(whichFact == -1)
 						{
 							whichFact = (int)(tmp.size()*Math.random());
-							sendMessage(channel, line_header() + "Let me tell you something random about " + topic + "! Fact #" + (whichFact+1) + ": " + tmp.elementAt(whichFact));
+							local_sendMessage(channel, line_header() + "Let me tell you something random about " + topic + "! Fact #" + (whichFact+1) + ": " + tmp.elementAt(whichFact));
 						} else
 						{
 							if(whichFact < 0)
 								whichFact = 0;
 							if(whichFact >= tmp.size())
 								whichFact = tmp.size()-1;
-							sendMessage(channel, line_header() + "Let me tell you fact #" + (whichFact+1) + " about " + topic + ": " + tmp.elementAt(whichFact));
+							local_sendMessage(channel, line_header() + "Let me tell you fact #" + (whichFact+1) + " about " + topic + ": " + tmp.elementAt(whichFact));
 						}
 					}
 				}
@@ -424,8 +424,8 @@ public class PPbot extends PircBot
 
 				if(topic.length() == 0)
 				{
-					sendMessage(sender, line_header() + "sorry, but you need to specify a topic for your fact! Something like:");
-					sendMessage(sender, getNick() + ": addfact.cats Cats have nine lives.");
+					local_sendMessage(sender, line_header() + "sorry, but you need to specify a topic for your fact! Something like:");
+					local_sendMessage(sender, getNick() + ": addfact.cats Cats have nine lives.");
 				} else
 				{
 					String fact = commandCase.substring(command.indexOf("addfact"));
@@ -444,7 +444,7 @@ public class PPbot extends PircBot
 						facts.put(topic, tmp);
 					}
 
-					sendMessage(sender, line_header() + "Thanks! I now know " + facts.get(topic).size() + " thing[s] about " + topic + "!");
+					local_sendMessage(sender, line_header() + "Thanks! I now know " + facts.get(topic).size() + " thing[s] about " + topic + "!");
 				}
 			} else if(command.startsWith("deletefact"))
 			{
@@ -453,8 +453,8 @@ public class PPbot extends PircBot
 
 				if(topic.length() == 0)
 				{
-					sendMessage(sender, line_header() + "sorry, but you need to specify a topic for your fact! Something like:");
-					sendMessage(sender, getNick() + ": deletefact.cats 3");
+					local_sendMessage(sender, line_header() + "sorry, but you need to specify a topic for your fact! Something like:");
+					local_sendMessage(sender, getNick() + ": deletefact.cats 3");
 				} else
 				{
 					String whichFact = commandCase.substring(command.indexOf("deletefact"));
@@ -467,17 +467,17 @@ public class PPbot extends PircBot
 
 						if(facts.get(topic) == null)
 						{
-							sendMessage(sender, line_header() + "sorry, but I don't know any facts about that topic!");
+							local_sendMessage(sender, line_header() + "sorry, but I don't know any facts about that topic!");
 						} else
 						{
 							Vector<String> tmp = facts.get(topic);
 
 							if((x < 0) || (x > tmp.size()))
 							{
-								sendMessage(sender, line_header() + "sorry, but the fact you want me to delete doesn't exist. I only know " + tmp.size() + " things about " + topic);
+								local_sendMessage(sender, line_header() + "sorry, but the fact you want me to delete doesn't exist. I only know " + tmp.size() + " things about " + topic);
 							} else
 							{
-								sendMessage(sender, line_header() + "I have removed the fact \"" + tmp.elementAt(x) + "\" from topic " + topic + ". Hope you're not changing history for the worse. I now know " + (tmp.size() - 1) + " thing[s] about " + topic + ".");
+								local_sendMessage(sender, line_header() + "I have removed the fact \"" + tmp.elementAt(x) + "\" from topic " + topic + ". Hope you're not changing history for the worse. I now know " + (tmp.size() - 1) + " thing[s] about " + topic + ".");
 								tmp.removeElementAt(x);
 								facts.put(topic, tmp);
 							}
@@ -485,8 +485,8 @@ public class PPbot extends PircBot
 
 					} catch(Exception e)
 					{
-						sendMessage(sender, line_header() + "sorry, but you need to specify a fact number to remove! Something like:");
-						sendMessage(sender, getNick() + ": deletefact.cats 3");
+						local_sendMessage(sender, line_header() + "sorry, but you need to specify a fact number to remove! Something like:");
+						local_sendMessage(sender, getNick() + ": deletefact.cats 3");
 					}
 				}
 			} else if(command.equals("stats") || command.equals("statistics"))
@@ -513,12 +513,12 @@ public class PPbot extends PircBot
 						nfacts += facts.get(k).size();
 					}
 					tmp += "Finally, I have been trained to recite " + nfacts + " facts about " + facts.size() + " topics! Isn't THAT impressive?";
-					sendMessage(channel, line_header() + tmp);
+					local_sendMessage(channel, line_header() + tmp);
 				}
 					
 			} else
 			{
-				sendMessage(sender, line_header() + "sorry, but I didn't understand your command!");
+				local_sendMessage(sender, line_header() + "sorry, but I didn't understand your command!");
 			}
 		}
 	}
@@ -548,19 +548,19 @@ public class PPbot extends PircBot
 
 		if(matchplus.contains(sender.toLowerCase()))
 		{
-			sendMessage(sender, line_header() + "hey, " + sender + "--, stop jerking off in public");
+			local_sendMessage(sender, line_header() + "hey, " + sender + "--, stop jerking off in public");
 			applyMatch(getNick(), sender, sender.toLowerCase(), -1, false);
 			matchplus.remove(sender.toLowerCase());
 		}
 
 		if(matchplus.contains(getNick().toLowerCase()))
 		{
-			sendMessage(channel, line_header() + "hey, " + sender + ", what are you doing later? *bite*");
+			local_sendMessage(channel, line_header() + "hey, " + sender + ", what are you doing later? *bite*");
 		}
 
 		if(matchminus.contains(getNick().toLowerCase()))
 		{
-			sendMessage(channel, line_header() + "hey, " + sender + "--, eat a bag of dicks");
+			local_sendMessage(channel, line_header() + "hey, " + sender + "--, eat a bag of dicks");
 			applyMatch(getNick(), channel, sender, -1, false);
 			matchminus.remove(getNick());
 		}
@@ -571,7 +571,7 @@ public class PPbot extends PircBot
 		lame |= applyMatches(sender, channel, matchneutral, 0, false);
 		if(lame)
 		{
-			sendMessage(sender, line_header() + "hey, " + sender + "--, stop being a dickbag by trying to multi-parse");
+			local_sendMessage(sender, line_header() + "hey, " + sender + "--, stop being a dickbag by trying to multi-parse");
 			applyMatch(getNick(), sender, sender, -1, false);
 		}
 
@@ -592,7 +592,7 @@ public class PPbot extends PircBot
 			Matcher matcher = pattern.matcher(message.toLowerCase());
 			if(matcher.find())
 			{
-				sendMessage(channel, sender + ": " + triggers[i][2]);
+				local_sendMessage(channel, sender + ": " + triggers[i][2]);
 				onMessage(channel, getNick() + "_auto", getNick(), "", triggers[i][2]);
 			}
 		}
@@ -827,13 +827,13 @@ public class PPbot extends PircBot
 		for(int i = 0; i < n; i++)
 			message += entries.get(i).getKey() + " = " + entries.get(i).getValue().intValue() + " || ";
 
-		sendMessage(channel, message);
+		local_sendMessage(channel, message);
 		message = line_header() + "bottom " + n + " entries: ";
 
 		for(int i = 0; i < n; i++)
 			message += entries.get(entries.size() - i - 1).getKey() + " = " + entries.get(entries.size() - i - 1).getValue().intValue() + " || ";
 	
-		sendMessage(channel, message);
+		local_sendMessage(channel, message);
 	}
 
 	public void sendKeyedStatistics(String channel, String match)
@@ -853,7 +853,7 @@ public class PPbot extends PircBot
 			}
 		}
 		message += "(" + count + " matches found)";
-		sendMessage(channel, message);
+		local_sendMessage(channel, message);
 	}
 
 	protected void onDisconnect()
@@ -904,7 +904,7 @@ public class PPbot extends PircBot
 
 	public void displayValue(String channel, String key)
 	{
-		sendMessage(channel, line_header() + valueString(key) + "\n");
+		local_sendMessage(channel, line_header() + valueString(key) + "\n");
 	}
 
 	public void sendRandomFact(String channel)
@@ -923,6 +923,27 @@ public class PPbot extends PircBot
 		}
 
 		int whichFact = (int)(allfacts.size()*Math.random());
-		sendMessage(channel, line_header() + "Let me tell you something random about " + allfacts.elementAt(whichFact));
+		local_sendMessage(channel, line_header() + "Let me tell you something random about " + allfacts.elementAt(whichFact));
+	}
+
+	public void local_sendMessage(String channel, String message)
+	{
+		int maxLen = 400;
+		boolean needsSplit = message.length() > maxLen;
+
+		System.out.println("maxline = " + maxLen);
+
+		if(!needsSplit)
+		{
+			sendMessage(channel, message);
+			return;
+		}
+
+		while(message.length() > maxLen)
+		{
+			sendMessage(channel, message.substring(0, maxLen));
+			message = message.substring(maxLen, message.length());
+		}
+		sendMessage(channel, message);
 	}
 }
