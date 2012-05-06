@@ -102,6 +102,12 @@ public class PPbot extends PircBot
 		return retval;
 	}
 
+	public void blacklistCallOut(String sender, String key)
+	{
+		local_sendMessage("#"+channel, line_header() + " hey guys, guess who's a dick by trying to parse with " + key + "? oh, it's just " + sender + "--");
+		applyMatch(getNick(), "#"+channel, sender, -1, false);
+	}
+
 	public void applyMatch(String sender, String channel, String key, int delta, boolean checkExpiry)
 	{
 		for(int i = 0; i < blacklistKeys.length; i++)
@@ -109,6 +115,7 @@ public class PPbot extends PircBot
 			if(key.equalsIgnoreCase(blacklistKeys[i]))
 			{
 				local_sendMessage(sender, line_header() + "sorry, but " + key +" has been identified as a topic of great contention and been blacklisted");
+				blacklistCallOut(sender, key);
 				return;
 			}
 		}
@@ -207,12 +214,22 @@ public class PPbot extends PircBot
 				// parse out the two strings
 				Pattern p = Pattern.compile("(" + KEY_REGEX + ")\\s*\\+=\\s*(" + KEY_REGEX + ")");
 				Matcher m = p.matcher(message);
-				while(m.find())
+				match_add: while(m.find())
 				{
 					System.out.println("linking " + m.group(1) + " to " + m.group(2));
 
 					String dest = m.group(1).toLowerCase();
 					String src = m.group(2).toLowerCase();
+
+					for(int i = 0; i < blacklistKeys.length; i++)
+					{
+						if(src.equalsIgnoreCase(blacklistKeys[i]))
+						{
+							local_sendMessage(sender, line_header() + "sorry, but " + src +" has been identified as a topic of great contention and been blacklisted");
+							blacklistCallOut(sender, src);
+							continue match_add;
+						}
+					}
 
 					if(dest.equals(src))
 					{
@@ -883,7 +900,14 @@ public class PPbot extends PircBot
 		String suffix = "";
 		key = key.toLowerCase();
 
-		int sum = values.get(key).intValue();
+		int sum;
+		try
+		{
+			sum = values.get(key).intValue();
+		} catch(Exception e)
+		{
+			sum = 0;
+		}
 
 		Vector<String> targets = links.get(key);
 		if(targets != null)
