@@ -952,6 +952,12 @@ public class PPbot extends PircBot
 
 	public void local_sendMessage(String channel, String message)
 	{
+		GregorianCalendar lolcal = new GregorianCalendar();
+		if(lolcal.get(Calendar.DAY_OF_WEEK) == lolcal.FRIDAY)
+		{
+			message = message.toUpperCase();
+		}
+
 		int maxLen = 400;
 		boolean needsSplit = message.length() > maxLen;
 
