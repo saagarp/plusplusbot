@@ -956,6 +956,10 @@ public class PPbot extends PircBot
 		if(lolcal.get(Calendar.DAY_OF_WEEK) == lolcal.FRIDAY)
 		{
 			message = message.toUpperCase();
+			changeNick(getNick().toUpperCase());
+		} else
+		{
+			changeNick(getNick().toLowerCase());
 		}
 
 		int maxLen = 400;
