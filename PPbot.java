@@ -346,6 +346,16 @@ public class PPbot extends PircBot
 				}
 				sendKeyedStatistics(channel, arg);
 
+			} else if(command.startsWith("who the fuck cares about"))
+			{
+				String arg = command.substring((new String("who the fuck cares about")).length()).trim().toLowerCase();
+				int delim = arg.indexOf("?");
+				if(delim != -1)
+				{
+					arg = arg.substring(0, delim);
+				}
+				sendKeyedLinkStatistics(channel, arg);
+
 			} else if(command.equalsIgnoreCase("rimshot"))
 			{
 				local_sendMessage(channel, line_header() + "ba-dum-tish!");
@@ -875,6 +885,27 @@ public class PPbot extends PircBot
 			{
 				count++;
 				message += valueString(key, false) + " || ";
+			}
+		}
+		message += "(" + count + " matches found)";
+		local_sendMessage(channel, message);
+	}
+
+	public void sendKeyedLinkStatistics(String channel, String match)
+	{
+		String message = line_header() + "things that are dependent on \"" + match + "\": ";
+		int count = 0;
+
+		String key;
+		Enumeration<String> keys = values.keys();
+		while(keys.hasMoreElements())
+		{
+			key = keys.nextElement();
+			Vector<String> targets = links.get(key);
+			if((targets != null) && targets.contains(match.toLowerCase()))
+			{
+				count++;
+				message += key + ": " + values.get(key).intValue() + " || ";
 			}
 		}
 		message += "(" + count + " matches found)";
