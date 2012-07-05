@@ -608,7 +608,7 @@ public class PPbot extends PircBot
 			String patternSender = triggers[i][0];
 			if(patternSender.length() != 0)
 			{
-				if(!sender.contains(patternSender))
+				if(!sender.toLowerCase().contains(patternSender.toLowerCase()))
 					continue;
 			}
 
