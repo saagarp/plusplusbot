@@ -7,10 +7,9 @@ import java.io.*;
 public class PPbot extends PircBot
 {
 
-	final String[][] triggers = {/*{"", "pot",	"hey, can I get a hit of that?"},
-					 {"", "weed",	"hey, can I get a hit of that?"},
-					 {"", "dongs",	"SMELLS LIKE MAN MEAT"},
-					 {"", "dong",	"SMELLS LIKE MAN MEAT"},*/
+	final String[][] triggers = {
+					{"danyell", "hah", "danyell.says.hah++"},
+					{"bungodanderfluff", "meow", "meow++"},
 					{"jtb", "show", "jonthebastard.mentions.a.show++"},
 					{"jonthebastard", "show", "jonthebastard.mentions.a.show++"},
 					{"jtb", "shows", "jonthebastard.mentions.a.show++"},
@@ -18,10 +17,16 @@ public class PPbot extends PircBot
 					{"jtb", "concert", "jonthebastard.mentions.a.show++"},
 					{"jonthebastard", "concert", "jonthebastard.mentions.a.show++"},
 					{"jtb", "concerts", "jonthebastard.mentions.a.show++"},
-					{"jonthebastard", "concerts", "jonthebastard.mentions.a.show++"}};
+					{"jonthebastard", "concerts", "jonthebastard.mentions.a.show++"},
+					{"jtb", "gig", "jonthebastard.mentions.a.show++"},
+					{"jonthebastard", "gig", "jonthebastard.mentions.a.show++"},
+					{"jtb", "gigs", "jonthebastard.mentions.a.show++"},
+					{"jonthebastard", "gigs", "jonthebastard.mentions.a.show++"}};
 
 	final String[] blacklistUsers = {"dongbot"};
 	final String[] blacklistKeys = {"gogurt"};
+
+	static final int MAX_MESSAGE_LEN = 400;
 
 	static final String KEY_REGEX = "[\\[\\]\\w\\._\\-|\\{\\}]{2,}";
 
@@ -244,6 +249,9 @@ public class PPbot extends PircBot
 					// make sure source exists
 					if(values.get(src) == null)
 						values.put(src, new Integer(0));
+
+					if(values.get(dest) == null)
+						values.put(dest, new Integer(0));
 
 					if(links.get(dest) == null)
 					{
@@ -866,7 +874,7 @@ public class PPbot extends PircBot
 			if(key.toLowerCase().contains(match.toLowerCase()))
 			{
 				count++;
-				message += valueString(key) + " || ";
+				message += valueString(key, false) + " || ";
 			}
 		}
 		message += "(" + count + " matches found)";
@@ -894,11 +902,12 @@ public class PPbot extends PircBot
 		} 
 	}
 
-	public String valueString(String key)
+	public String valueString(String key, boolean trim)
 	{
 		// find related values
 		String suffix = "";
 		key = key.toLowerCase();
+		int trimMaxLen = MAX_MESSAGE_LEN - key.length() - 3 - 5 - getNick().length();
 
 		int sum;
 		try
@@ -909,17 +918,62 @@ public class PPbot extends PircBot
 			sum = 0;
 		}
 
-		Vector<String> targets = links.get(key);
-		if(targets != null)
+		if(trim)
 		{
-			suffix += " (itself, " + values.get(key) + ") is dependent on values: ";
-
-			for(int i = 0; i < targets.size(); i++)
+			/* assemble all potential suffixes into a new vector
+			 * and then select some randomly to be below the max
+			 * message length
+			 */
+			Vector<String> targets = links.get(key);
+			if(targets != null)
 			{
-				String otherKey = targets.elementAt(i);
-				Integer tmp = values.get(otherKey);
-				suffix += otherKey + ": " + tmp.intValue() + ((i != (targets.size() - 1)) ? ", " : "");
-				sum += tmp.intValue();
+				Vector<String> suffixes = new Vector<String>();
+
+				suffix += " (" + values.get(key) + ") linked to: ";
+
+				for(int i = 0; i < targets.size(); i++)
+				{
+					String otherKey = targets.elementAt(i);
+					Integer tmp = values.get(otherKey);
+
+					suffixes.add(otherKey + ": " + tmp.intValue());
+					sum += tmp.intValue();
+				}
+
+				/* randomly select */
+				Random gen = new Random();
+				while(true)
+				{
+					String old = suffix;
+					// select one randomly
+					int which = gen.nextInt(suffixes.size());
+					suffix += suffixes.elementAt(which) + ", ";
+					suffixes.remove(which);
+
+					if(suffix.length() > trimMaxLen)
+					{
+						suffix = old;
+						break;
+					}
+				}
+			}
+		} else
+		{
+			/* no trim; just add normally */
+			Vector<String> targets = links.get(key);
+			if(targets != null)
+			{
+				suffix += " (" + values.get(key) + ") linked to: ";
+
+				for(int i = 0; i < targets.size(); i++)
+				{
+					String otherKey = targets.elementAt(i);
+					Integer tmp = values.get(otherKey);
+
+					suffix += otherKey + ": " + tmp.intValue() + ((i != (targets.size() - 1)) ? ", " : "");
+
+					sum += tmp.intValue();
+				}
 			}
 		}
 
@@ -928,7 +982,7 @@ public class PPbot extends PircBot
 
 	public void displayValue(String channel, String key)
 	{
-		local_sendMessage(channel, line_header() + valueString(key) + "\n");
+		local_sendMessage(channel, line_header() + valueString(key, true) + "\n");
 	}
 
 	public void sendRandomFact(String channel)
@@ -962,10 +1016,9 @@ public class PPbot extends PircBot
 			changeNick(getNick().toLowerCase());
 		}
 
-		int maxLen = 400;
-		boolean needsSplit = message.length() > maxLen;
+		boolean needsSplit = message.length() > MAX_MESSAGE_LEN;
 
-		System.out.println("maxline = " + maxLen);
+		System.out.println("maxline = " + MAX_MESSAGE_LEN);
 
 		if(!needsSplit)
 		{
@@ -973,10 +1026,10 @@ public class PPbot extends PircBot
 			return;
 		}
 
-		while(message.length() > maxLen)
+		while(message.length() > MAX_MESSAGE_LEN)
 		{
-			sendMessage(channel, message.substring(0, maxLen));
-			message = message.substring(maxLen, message.length());
+			sendMessage(channel, message.substring(0, MAX_MESSAGE_LEN));
+			message = message.substring(MAX_MESSAGE_LEN, message.length());
 		}
 		sendMessage(channel, message);
 	}
