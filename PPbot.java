@@ -942,7 +942,7 @@ public class PPbot extends PircBot
 
 				/* randomly select */
 				Random gen = new Random();
-				while(true)
+				while(suffixes.size() > 0)
 				{
 					String old = suffix;
 					// select one randomly
