@@ -207,6 +207,11 @@ public class PPbot extends PircBot
 					e.printStackTrace();
 				}
 
+			} else if(command.startsWith("??"))
+			{
+				String arg = command.substring(2).trim().toLowerCase();
+				sendKeyedLinkStatistics(channel, arg);
+
 			} else if(command.startsWith("?"))
 			{
 				String arg = command.substring(1).trim().toLowerCase();
@@ -905,9 +910,14 @@ public class PPbot extends PircBot
 			if((targets != null) && targets.contains(match.toLowerCase()))
 			{
 				count++;
-				message += key + ": " + values.get(key).intValue() + " || ";
+
+				if(count < 50)
+					message += key + ": " + values.get(key).intValue() + " || ";
 			}
 		}
+
+		if(count >= 50)
+			message += "[truncated] ";
 		message += "(" + count + " matches found)";
 		local_sendMessage(channel, message);
 	}
