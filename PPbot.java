@@ -1074,4 +1074,14 @@ public class PPbot extends PircBot
 		}
 		sendMessage(channel, message);
 	}
+
+	protected void onInvite(String target, String source, String sourceLogin, String sourceHost, String inviteChannel)
+	{
+		// let's be social! and join the channel
+		if(channel.contains(inviteChannel) || inviteChannel.contains(channel))
+		{
+			joinChannel(inviteChannel);
+			local_sendMessage(inviteChannel, "Hi guys. In case you were wondering, it's " + source + "'s fault I'm here.");
+		}
+	}
 }
