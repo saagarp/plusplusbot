@@ -23,6 +23,31 @@ public class PPbot extends PircBot
 					{"jtb", "gigs", "jonthebastard.mentions.a.show++"},
 					{"jonthebastard", "gigs", "jonthebastard.mentions.a.show++"}};
 
+	final String[] magicResponses =
+	{
+		"It is certain",
+		"It is decidedly so",
+		"Without a doubt",
+		"Yes – definitely",
+		"You may rely on it",
+		"As I see it, yes",
+		"Most likely",
+		"Outlook good",
+		"Yes",
+		"Signs point to yes",
+		"Reply hazy, try again",
+		"Ask again later",
+		"Better not tell you now",
+		"Cannot predict now",
+		"Concentrate and ask again",
+		"Don't count on it",
+		"My reply is no",
+		"My sources say no",
+		"Outlook not so good",
+		"Very doubtful",
+		"YOLO"
+	};
+
 	final String[] blacklistUsers = {"dongbot"};
 	final String[] blacklistKeys = {"gogurt"};
 
@@ -555,7 +580,13 @@ public class PPbot extends PircBot
 					tmp += "Finally, I have been trained to recite " + nfacts + " facts about " + facts.size() + " topics! Isn't THAT impressive?";
 					local_sendMessage(channel, line_header() + tmp);
 				}
-					
+
+			} else if(command.endsWith("?"))
+			{
+				// magic 8-ball response
+				Random gen = new Random();
+				String response = magicResponses[gen.nextInt(magicResponses.length)];
+				local_sendMessage(channel, line_header() + sender + ": " + response);
 			} else
 			{
 				local_sendMessage(sender, line_header() + "sorry, but I didn't understand your command!");
