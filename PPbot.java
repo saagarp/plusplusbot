@@ -10,6 +10,7 @@ public class PPbot extends PircBot
 	final String[][] triggers = {
 					{"danyell", "hah", "danyell.says.hah++"},
 					{"bungodanderfluff", "meow", "meow++"},
+					{"xx3nvyxx", "meow", "meow++"},
 					{"jtb", "show", "jonthebastard.mentions.a.show++"},
 					{"jonthebastard", "show", "jonthebastard.mentions.a.show++"},
 					{"jtb", "shows", "jonthebastard.mentions.a.show++"},
