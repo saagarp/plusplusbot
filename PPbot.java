@@ -9,21 +9,21 @@ public class PPbot extends PircBot
 
 	final String[][] triggers = {
 		                    //  {string nick, bool exact, string match, string variable, int delta}
-					{"danyell", "false", "hah", "danyell.says.hah", 1},
-					{"BungoDanderfluff", "true", "meow", "meow", 1},
-					{"xx3nvyxx", "true", "meow", "meow", 1},
-					{"jtb", "false", "show", "jonthebastard.mentions.a.show", 1},
-					{"jonthebastard", "false", "show", "jonthebastard.mentions.a.show", 1},
-					{"jtb", "false", "shows", "jonthebastard.mentions.a.show", 1},
-					{"jonthebastard", "false", "shows", "jonthebastard.mentions.a.show", 1},
-					{"jtb", "false", "concert", "jonthebastard.mentions.a.show", 1},
-					{"jonthebastard", "false", "concert", "jonthebastard.mentions.a.show", 1},
-					{"jtb", "false", "concerts", "jonthebastard.mentions.a.show", 1},
-					{"jonthebastard", "false", "concerts", "jonthebastard.mentions.a.show", 1},
-					{"jtb", "false", "gig", "jonthebastard.mentions.a.show", 1},
-					{"jonthebastard", "false", "gig", "jonthebastard.mentions.a.show", 1},
-					{"jtb", "false", "gigs", "jonthebastard.mentions.a.show", 1},
-					{"jonthebastard", "false", "gigs", "jonthebastard.mentions.a.show", 1}};
+					{"danyell", "false", "hah", "danyell.says.hah", "1"},
+					{"BungoDanderfluff", "true", "meow", "meow", "1"},
+					{"xx3nvyxx", "true", "meow", "meow", "1"},
+					{"jtb", "false", "show", "jonthebastard.mentions.a.show", "1"},
+					{"jonthebastard", "false", "show", "jonthebastard.mentions.a.show", "1"},
+					{"jtb", "false", "shows", "jonthebastard.mentions.a.show", "1"},
+					{"jonthebastard", "false", "shows", "jonthebastard.mentions.a.show", "1"},
+					{"jtb", "false", "concert", "jonthebastard.mentions.a.show", "1"},
+					{"jonthebastard", "false", "concert", "jonthebastard.mentions.a.show", "1"},
+					{"jtb", "false", "concerts", "jonthebastard.mentions.a.show", "1"},
+					{"jonthebastard", "false", "concerts", "jonthebastard.mentions.a.show", "1"},
+					{"jtb", "false", "gig", "jonthebastard.mentions.a.show", "1"},
+					{"jonthebastard", "false", "gig", "jonthebastard.mentions.a.show", "1"},
+					{"jtb", "false", "gigs", "jonthebastard.mentions.a.show", "1"},
+					{"jonthebastard", "false", "gigs", "jonthebastard.mentions.a.show", "1"}};
 
 	final String MAGIC_RESPONSE_CATEGORY = "magic8ball";
 	final String[] blacklistUsers = {"dongbot"};
