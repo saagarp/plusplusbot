@@ -101,6 +101,22 @@ public class PPbot extends PircBot
 		restoreData();
 
 		onDisconnect();
+
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+		    public void run() {
+			String[] chans = getChannels();
+			for(int i=0; i < chans.length; i++)
+			{
+				local_sendMessage(chans[i], line_header() + "oh shit, they're trying to shu$ d#wn $!@# )%()!#@%) !)!) 10928q$)(!@*$)moo");
+				while(getOutgoingQueueSize() > 0)
+				{
+					try { Thread.sleep(100); } catch (InterruptedException ie) {}
+				}
+
+				partChannel(chans[i], "ctrl-c, bitches");
+			}
+		    }
+		});
     }
 
 	public Vector<String> getMatches(String regex, String text)
