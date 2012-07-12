@@ -589,7 +589,11 @@ public class PPbot extends PircBot
     public void onPrivateMessage(String sender, String login, String hostname, String message)
 	{
 		onMessage(sender, sender, login, hostname, message);
+	}
 
+    public void onAction(String sender, String login, String hostname, String target, String action)
+	{
+		onMessage(target, sender, login, hostname, action);
 	}
 
     public void onMessage(String channel, String sender, String login, String hostname, String message)
@@ -682,7 +686,7 @@ public class PPbot extends PircBot
 					f.renameTo(new File(data_file_backup));
 				else
 				{
-					System.out.println("ERROR: data file didn't exist");
+					System.out.println("ERROR: data file didn't exist (" + data_file + ")");
 					System.exit(-1);
 				}
 		
@@ -703,7 +707,7 @@ public class PPbot extends PircBot
 					f.renameTo(new File(link_file_backup));
 				else
 				{
-					System.out.println("ERROR: link file didn't exist");
+					System.out.println("ERROR: link file didn't exist (" + link_file + ")");
 					System.exit(-1);
 				}
 
@@ -729,7 +733,7 @@ public class PPbot extends PircBot
 					f.renameTo(new File(fact_file_backup));
 				else
 				{
-					System.out.println("ERROR: fact file didn't exist");
+					System.out.println("ERROR: fact file didn't exist (" + fact_file + ")");
 					System.exit(-1);
 				}
 
@@ -764,7 +768,7 @@ public class PPbot extends PircBot
 				File f = new File(data_file);
 				if(!f.exists())
 				{
-					System.out.println("ERROR: data file didn't exist, ignoring");
+					System.out.println("ERROR: data file didn't exist (" + data_file + ")");
 					System.exit(-1);
 				}
 
@@ -793,7 +797,7 @@ public class PPbot extends PircBot
 				File f = new File(link_file);
 				if(!f.exists())
 				{
-					System.out.println("ERROR: link file didn't exist, ignoring");
+					System.out.println("ERROR: link file didn't exist (" + link_file + ")");
 					System.exit(-1);
 				}
 
@@ -834,7 +838,7 @@ public class PPbot extends PircBot
 				File f = new File(fact_file);
 				if(!f.exists())
 				{
-					System.out.println("ERROR: fact file didn't exist, ignoring");
+					System.out.println("ERROR: fact file didn't exist (" + fact_file + ")");
 					System.exit(-1);
 				}
 
