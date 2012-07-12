@@ -7,23 +7,30 @@ import java.io.*;
 public class PPbot extends PircBot
 {
 
+	// for indexing into the mess below
+	final static int T_NICK = 0;
+	final static int T_EXACT = 1;
+	final static int T_KEYWORD = 2;
+	final static int T_VARIABLE = 3;
+	final static int T_DELTA = 4;
+
 	final String[][] triggers = {
-		                    //  {string nick, bool exact, string match, string variable, int delta}
-					{"danyell", "false", "hah", "danyell.says.hah", "1"},
-					{"BungoDanderfluff", "true", "meow", "meow", "1"},
-					{"xx3nvyxx", "true", "meow", "meow", "1"},
-					{"jtb", "false", "show", "jonthebastard.mentions.a.show", "1"},
-					{"jonthebastard", "false", "show", "jonthebastard.mentions.a.show", "1"},
-					{"jtb", "false", "shows", "jonthebastard.mentions.a.show", "1"},
-					{"jonthebastard", "false", "shows", "jonthebastard.mentions.a.show", "1"},
-					{"jtb", "false", "concert", "jonthebastard.mentions.a.show", "1"},
-					{"jonthebastard", "false", "concert", "jonthebastard.mentions.a.show", "1"},
-					{"jtb", "false", "concerts", "jonthebastard.mentions.a.show", "1"},
-					{"jonthebastard", "false", "concerts", "jonthebastard.mentions.a.show", "1"},
-					{"jtb", "false", "gig", "jonthebastard.mentions.a.show", "1"},
-					{"jonthebastard", "false", "gig", "jonthebastard.mentions.a.show", "1"},
-					{"jtb", "false", "gigs", "jonthebastard.mentions.a.show", "1"},
-					{"jonthebastard", "false", "gigs", "jonthebastard.mentions.a.show", "1"}};
+//	{string nick, 		bool exact,	string match,	string variable,				 int delta}
+	{"danyell", 		"false", 	"hah", 			"danyell.says.hah", 			 "1"},
+	{"BungoDanderfluff","true", 	"meow", 		"meow", 						 "1"},
+	{"xx3nvyxx", 		"true", 	"meow", 		"meow", 						 "1"},
+	{"jtb", 			"false", 	"show", 		"jonthebastard.mentions.a.show", "1"},
+	{"jonthebastard", 	"false", 	"show", 		"jonthebastard.mentions.a.show", "1"},
+	{"jtb", 			"false", 	"shows", 		"jonthebastard.mentions.a.show", "1"},
+	{"jonthebastard", 	"false", 	"shows", 		"jonthebastard.mentions.a.show", "1"},
+	{"jtb", 			"false", 	"concert", 		"jonthebastard.mentions.a.show", "1"},
+	{"jonthebastard", 	"false", 	"concert", 		"jonthebastard.mentions.a.show", "1"},
+	{"jtb", 			"false", 	"concerts", 	"jonthebastard.mentions.a.show", "1"},
+	{"jonthebastard", 	"false", 	"concerts", 	"jonthebastard.mentions.a.show", "1"},
+	{"jtb", 			"false", 	"gig", 			"jonthebastard.mentions.a.show", "1"},
+	{"jonthebastard", 	"false", 	"gig", 			"jonthebastard.mentions.a.show", "1"},
+	{"jtb", 			"false", 	"gigs", 		"jonthebastard.mentions.a.show", "1"},
+	{"jonthebastard", 	"false", 	"gigs", 		"jonthebastard.mentions.a.show", "1"}};
 
 	final String MAGIC_RESPONSE_CATEGORY = "magic8ball";
 	final String[] blacklistUsers = {"dongbot"};
@@ -636,12 +643,12 @@ public class PPbot extends PircBot
 		// process triggers
 		for(int i = 0; i < triggers.length; i++)
 		{
-			String patternSender = triggers[i][0];
+			String patternSender = triggers[i][T_NICK];
 			if(patternSender.length() != 0)
 			{
-				if(Boolean.parseBoolean(triggers[i][1]))
+				if(Boolean.parseBoolean(triggers[i][T_EXACT]))
 				{
-					if(!sender.equals(patternSender)
+					if(!sender.equals(patternSender))
 						continue;
 				}
 				else
@@ -651,13 +658,13 @@ public class PPbot extends PircBot
 				}
 			}
 
-			String patternString = "\\b" + triggers[i][2].toLowerCase() + "\\b";
+			String patternString = "\\b" + triggers[i][T_KEYWORD].toLowerCase() + "\\b";
 			Pattern pattern = Pattern.compile(patternString);
 			Matcher matcher = pattern.matcher(message.toLowerCase());
 			if(matcher.find())
 			{
-				local_sendMessage(channel, sender + ": " + triggers[i][3] + "++");
-				applyMatch(getNick(), "#"+channel, triggers[i][3], Integer.parseInt(triggers[i][4]), false);
+				local_sendMessage(channel, sender + ": " + triggers[i][T_VARIABLE] + "++");
+				applyMatch(getNick(), channel, triggers[i][T_VARIABLE], Integer.parseInt(triggers[i][T_DELTA]), false);
 			}
 		}
 
