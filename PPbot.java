@@ -30,7 +30,11 @@ public class PPbot extends PircBot
 	{"jtb", 			"false", 	"gig", 			"jonthebastard.mentions.a.show", "1"},
 	{"jonthebastard", 	"false", 	"gig", 			"jonthebastard.mentions.a.show", "1"},
 	{"jtb", 			"false", 	"gigs", 		"jonthebastard.mentions.a.show", "1"},
-	{"jonthebastard", 	"false", 	"gigs", 		"jonthebastard.mentions.a.show", "1"}};
+	{"jonthebastard", 	"false", 	"gigs", 		"jonthebastard.mentions.a.show", "1"},
+	{"jtb", 			"false", 	"ticket", 			"jonthebastard.almost.mentions.a.show", "1"},
+	{"jonthebastard", 	"false", 	"ticket", 			"jonthebastard.almost.mentions.a.show", "1"},
+	{"jtb", 			"false", 	"tickets", 		"jonthebastard.almost.mentions.a.show", "1"},
+	{"jonthebastard", 	"false", 	"tickets", 		"jonthebastard.almost.mentions.a.show", "1"}};
 
 	final String MAGIC_RESPONSE_CATEGORY = "magic8ball";
 	final String[] blacklistUsers = {"dongbot"};
