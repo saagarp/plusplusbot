@@ -480,6 +480,12 @@ public class PPbot extends PircBot
                         }
                     }
 
+                    if((reminder.when != 0) && (reminder.when < (new Date()).getTime()))
+                    {
+                        local_sendMessage(sender, line_header() + "I can't remind people of things in the past yet. Feature pending invention of time travel.");
+                        return;
+                    }
+
                     synchronized(reminders)
                     {
                         // only one reminder per src,dst pair
