@@ -1376,11 +1376,18 @@ public class PPbot extends PircBot
             if(reminders.containsKey(sender))
             {
                 Vector<Reminder> forUser = reminders.get(sender);
-                reminders.remove(sender);
+                Vector<Reminder> timed = new Vector<Reminder>();
 
                 for(Reminder r : forUser)
-                    local_sendMessage(r.destination, sender + ": " + r.toString());
+                {
+                    if(r.when == 0)
+                        local_sendMessage(r.destination, sender + ": " + r.toString());
+                    else
+                        timed.addElement(r);
             //        local_sendMessage(r.channel, sender + ": " + r.toString());
+                }
+
+                reminders.put(sender, timed);
             }
 
             // update activity record
