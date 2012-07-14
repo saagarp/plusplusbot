@@ -1,6 +1,6 @@
 import org.jibble.pircbot.*;
 import java.util.*;
-import java.text.SimpleDateFormat;
+import java.text.*;
 import java.util.regex.*;
 import java.io.*;
 
@@ -73,7 +73,6 @@ public class PPbot extends PircBot
     }
 
     static final long RECENT_WINDOW_MILLISECONDS = 30 * 60 * 1000; // 30 minutes
-    static final long RANDOM_FACT_TIMER_MILLISECONDS = 60 * 60 * 1000; // 15 minutes
 
     Hashtable<String, Integer> values = new Hashtable<String, Integer>();
     Vector<Parse> recentParses = new Vector<Parse>();
@@ -81,7 +80,47 @@ public class PPbot extends PircBot
 
     Hashtable<String, Vector<String> > facts = new Hashtable<String, Vector<String> >();
 
-    Hashtable<String, Vector<String> > messages = new Hashtable<String, Vector<String> >();
+    class Reminder
+    {
+        long created;
+        long when;
+        long when_expired;
+        String sender ;
+        String destination;
+        String message;
+
+        String channel;
+
+        public String toString()
+        {
+            SimpleDateFormat fmt = new SimpleDateFormat("MM/dd/yyyy 'at' hh:mm aa");
+
+            String ret = "";
+            ret += "on " + fmt.format(new Date(created)) + ", ";
+            ret += sender + " asked me to remind you to ";
+            ret += "\"" + message + "\" ";
+
+            if(when != 0)
+                ret += "at precisely " + fmt.format(new Date(when));
+            else if (when_expired != 0)
+                ret += ". I reminded you on " + fmt.format(new Date(when_expired)) + ", but you weren't active then. This is your final reminder.";
+
+            return ret;
+        }
+    }
+    static final long RECENT_ACTIVITY_MILLISECONDS = 60 * 1000; // 60 seconds
+    static final long REMINDER_TIMER_PERIOD = 15 * 1000; // 15 seconds
+    Hashtable<String, Long> activityTracker = new Hashtable<String, Long>();
+    Hashtable<String, Vector<Reminder> > reminders = new Hashtable<String, Vector<Reminder> >();
+    Timer reminderTimer;
+
+    class ReminderTask extends TimerTask
+    {
+        public void run()
+        {
+            checkTimedReminders();
+        }
+    };
 
     String channel;
     String data_file;
@@ -123,6 +162,9 @@ public class PPbot extends PircBot
             }
             }
         });
+
+        reminderTimer = new Timer();
+        reminderTimer.schedule(new ReminderTask(), 0, REMINDER_TIMER_PERIOD);
     }
 
     public Vector<String> getMatches(String regex, String text)
@@ -393,6 +435,98 @@ public class PPbot extends PircBot
                 }
                 sendKeyedLinkStatistics(channel, sender, arg);
 
+            } else if(command.startsWith("remind"))
+            {
+                String patterns_dated_prefix[]  = {"remind (\\S+) at (.+) to (.+)",  "remind (\\S+) at (.+) that (.+)"};
+                String patterns_dated_postfix[] = {"remind (\\S+) to (.+) at (.+)$", "remind (\\S+) that (.+) at (.+)"};
+                String patterns_undated[]       = {"remind (\\S+) to (.+)",          "remind (\\S+) that (.+)"};
+
+                Reminder reminder = null;
+                try
+                {
+                    if(reminder == null)
+                        reminder = parseReminder(patterns_dated_prefix, sender, command, 1, 2, 3);
+                    if(reminder == null)
+                        reminder = parseReminder(patterns_dated_postfix, sender, command, 1, 3, 2);
+                    if(reminder == null)
+                        reminder = parseReminder(patterns_undated, sender, command, 1, 0, 2);
+
+                    if(reminder == null)
+                    {
+                        local_sendMessage(sender, line_header() + "sorry, but I couldn't parse your reminder. You should probably consult the manual (or bitch in IRC).");
+                        return;
+                    }
+
+                    if(reminder.destination.equalsIgnoreCase(getNick()))
+                    {
+                        local_sendMessage(sender, line_header() + "Thanks, but I don't need reminding.");
+                        return;
+                    }
+
+                    reminder.destination = reminder.destination.toLowerCase();
+
+                    if(sender.equalsIgnoreCase(channel))
+                        reminder.channel = reminder.destination;
+                    else
+                        reminder.channel = channel;
+
+                    if((reminder.when == 0) && activityTracker.containsKey(reminder.destination))
+                    {
+                        Long timestamp = activityTracker.get(reminder.destination);
+                        if(timestamp.longValue() > ((new Date()).getTime() - RECENT_ACTIVITY_MILLISECONDS))
+                        {
+                            local_sendMessage(sender, line_header() + "sorry, but " + reminder.destination + " has been active recently. Fucking tell them yourself like a grownup.");
+                            return;
+                        }
+                    }
+
+                    synchronized(reminders)
+                    {
+                        // only one reminder per src,dst pair
+                        if(!sender.equalsIgnoreCase(reminder.destination))
+                        {
+                            Vector<Reminder> destReminders = reminders.get(reminder.destination);
+                            if(destReminders != null)
+                            {
+                                for(int i = 0; i < destReminders.size(); i++)
+                                {
+                                    Reminder r = destReminders.elementAt(i);
+                                    if(r.sender.toLowerCase().contains(sender.toLowerCase()) || 
+                                       sender.toLowerCase().contains(r.sender.toLowerCase()))
+                                    {
+                                        local_sendMessage(sender, line_header() + " you can only have one active reminder per person, so I am removing your previous reminder: " + r.toString());
+                                        destReminders.removeElement(r);
+                                        break;
+                                    }
+                                }
+
+                                reminders.put(reminder.destination, destReminders);
+                            }
+                        }
+
+                        Vector<Reminder> tmp = reminders.get(reminder.destination);
+                        if(tmp == null)
+                            tmp = new Vector<Reminder> ();
+                        tmp.addElement(reminder);
+                        reminders.put(reminder.destination, tmp);
+                    }
+
+                    String out = "okay, ";
+                    if(reminder.when != 0)
+                    {
+                        SimpleDateFormat fmt = new SimpleDateFormat("MM/dd/yyyy 'at' hh:mm aa");
+                        out += "on or after " + fmt.format(new Date(reminder.when)) + ", ";
+                    }
+                    out += "I will remind " + reminder.destination + " of that when I see them. Keep in mind that reminders disappear if the bot crashes or is shut down, so don't rely on this for *super* important things.";
+                    local_sendMessage(sender, line_header() + out);
+
+                } catch(ParseException pe)
+                {
+                    local_sendMessage(sender, line_header() + "sorry, I couldn't parse your date!");
+                    System.out.println(pe);
+                }
+
+               
             } else if(command.equalsIgnoreCase("rimshot"))
             {
                 local_sendMessage(channel, line_header() + "ba-dum-tish!");
@@ -622,6 +756,8 @@ public class PPbot extends PircBot
     {
         if(sender.equals(getNick()))
             return;
+
+        checkReminders(sender);
 
         for(int i = 0; i < blacklistUsers.length; i++)
         {
@@ -998,6 +1134,12 @@ public class PPbot extends PircBot
                 } catch(Exception e2) {}
             }
         } 
+
+        GregorianCalendar lolcal = new GregorianCalendar();
+        if(lolcal.get(Calendar.DAY_OF_WEEK) == lolcal.FRIDAY)
+            changeNick(getNick().toUpperCase());
+        else
+            changeNick(getNick().toLowerCase());
     }
 
     public String valueString(String key, boolean trim)
@@ -1143,7 +1285,7 @@ public class PPbot extends PircBot
             local_sendMessage(sender, message);
         } else
         {
-            sendMessage(channel, message);
+            local_sendMessage(channel, message);
         }
     }
 
@@ -1154,6 +1296,139 @@ public class PPbot extends PircBot
         {
             joinChannel(inviteChannel);
             local_sendMessage(inviteChannel, "Hi guys. In case you were wondering, it's " + source + "'s fault I'm here.");
+        }
+    }
+
+    private Reminder parseReminder(String[] regexes, String sender, String message, int target_idx, int date_idx, int message_idx) throws ParseException
+    {
+        boolean found = false;
+        Pattern pattern = null;
+        Matcher matcher = null;
+
+        for(int i = 0; i < regexes.length; i++)
+        {
+            pattern = Pattern.compile(regexes[i]);
+            matcher = pattern.matcher(message);
+
+            if(matcher.find())
+            {
+                System.out.println("matched pattern " + regexes[i]);
+                for(int j = 0; j < matcher.groupCount()+1; j++)
+                {
+                    System.out.println("group " + j + " = " + matcher.group(j));
+                }
+                found = true;
+                break;
+            }
+
+        }
+
+        if(!found)
+            return null;
+
+        Reminder r = new Reminder();
+        r.destination = matcher.group(target_idx).trim();
+        r.sender = sender.toLowerCase();
+
+        if(r.destination.equalsIgnoreCase("me"))
+            r.destination = sender;
+
+        r.when_expired = 0;
+
+        if(date_idx <= 0)
+        {
+            r.when = 0;
+        } else
+        {
+            String date = matcher.group(date_idx).trim();
+            Date realDate = DateUtil.parse(matcher.group(date_idx));
+
+            if(realDate.getYear() == 70)
+                realDate.setYear((new Date()).getYear());
+
+            if((realDate.getMonth() == 0) && (realDate.getDate() == 1))
+            {
+                realDate.setMonth((new Date()).getMonth());
+                realDate.setDate((new Date()).getDate());
+            }
+
+            r.when = realDate.getTime();
+        }
+
+        r.message = matcher.group(message_idx).trim();
+        r.created = new Long((new Date()).getTime());
+
+        return r;
+    }
+
+    public void checkReminders(String sender)
+    {
+        synchronized(reminders)
+        {
+            sender = sender.toLowerCase();
+
+            if(reminders.containsKey(sender))
+            {
+                Vector<Reminder> forUser = reminders.get(sender);
+                reminders.remove(sender);
+
+                for(Reminder r : forUser)
+                    local_sendMessage(r.destination, sender + ": " + r.toString());
+            //        local_sendMessage(r.channel, sender + ": " + r.toString());
+            }
+
+            // update activity record
+            activityTracker.put(sender, new Long((new Date()).getTime()));
+        }
+    }
+
+    public void checkTimedReminders()
+    {
+        long now = (new Date()).getTime();
+
+        System.out.println("reminder timer");
+        synchronized(reminders)
+        {
+            // find any timed reminders that have elapsed now
+            for(String dst : reminders.keySet())
+            {
+                Vector<Reminder> dstReminders = reminders.get(dst);
+                Vector<Reminder> leftReminders = new Vector<Reminder>();
+                for(Reminder r : dstReminders)
+                {
+                    if((r.when != 0) && (r.when > now))
+                    {
+                        local_sendMessage(r.destination, r.destination + ": " + r.toString());
+                        //local_sendMessage(r.channel, r.destination + ": " + r.toString());
+                        
+                        boolean remove = false;
+
+                        // if the user has been active recently, kill the reminder
+                        // if not, drop the timed part and remind them once more when they're active
+                        if(activityTracker.containsKey(r.destination))
+                        {
+                            Long timestamp = activityTracker.get(r.destination);
+                            if(timestamp.longValue() > (now - RECENT_ACTIVITY_MILLISECONDS))
+                                remove = true;
+                        }
+
+                        if(remove)
+                        {
+                            // do nothing
+                        } else
+                        {
+                            r.when_expired = r.when;
+                            r.when = 0;
+                            leftReminders.addElement(r);
+                        }
+                    } else
+                    {
+                        leftReminders.addElement(r);
+                    }
+                }
+
+                reminders.put(dst, leftReminders);
+            }
         }
     }
 }
