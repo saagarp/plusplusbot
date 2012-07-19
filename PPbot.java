@@ -1407,7 +1407,6 @@ public class PPbot extends PircBot
     {
         long now = (new Date()).getTime();
 
-        System.out.println("reminder timer");
         synchronized(reminders)
         {
             // find any timed reminders that have elapsed now
