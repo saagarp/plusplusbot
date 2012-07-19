@@ -34,7 +34,11 @@ public class PPbot extends PircBot
     {"jtb",             "false",    "ticket",       "jonthebastard.almost.mentions.a.show", "1"},
     {"jonthebastard",   "false",    "ticket",       "jonthebastard.almost.mentions.a.show", "1"},
     {"jtb",             "false",    "tickets",      "jonthebastard.almost.mentions.a.show", "1"},
-    {"jonthebastard",   "false",    "tickets",      "jonthebastard.almost.mentions.a.show", "1"}};
+    {"jonthebastard",   "false",    "tickets",      "jonthebastard.almost.mentions.a.show", "1"},
+    {"danyell",         "false",    "hah",          "danyell.says.hah",             "1"},
+    {"beatsake",        "false",    "hotpot",       "beatsake.mentions.hot.pot",    "1"},
+    {"beatsake",        "false",    "hot pot",      "beatsake.mentions.hot.pot",    "1"},
+    {"beatsake",        "false",    "hot.pot",      "beatsake.mentions.hot.pot",    "1"}};
 
     final String MAGIC_RESPONSE_CATEGORY = "magic8ball";
     final String[] blacklistUsers = {"dongbot"};
@@ -93,7 +97,7 @@ public class PPbot extends PircBot
 
         public String toString()
         {
-            SimpleDateFormat fmt = new SimpleDateFormat("MM/dd/yyyy 'at' hh:mm aa");
+            SimpleDateFormat fmt = new SimpleDateFormat("hh:mm aa 'at' MM/dd/yyyy ");
 
             String ret = "";
             ret += "on " + fmt.format(new Date(created)) + ", ";
@@ -255,7 +259,7 @@ public class PPbot extends PircBot
     {
         // process commands only if we're specifically targetted
         String commandHeader = getNick() + ":";
-        if(message.startsWith(commandHeader))
+        if(message.toLowerCase().startsWith(commandHeader.toLowerCase()))
         {
             String command = message.substring(commandHeader.length()+1).trim().toLowerCase();
             String commandCase = message.substring(commandHeader.length()+1).trim();
@@ -539,6 +543,10 @@ public class PPbot extends PircBot
             } else if(command.equalsIgnoreCase("rimjob"))
             {
                 local_sendMessage(channel, line_header() + "ba-dum-tush!");
+            } else if(command.endsWith("..."))
+            {
+                sendAction(channel, "puts on sunglasses");
+                local_sendMessage(channel, line_header() + "YEAAAAAAAAAAHHHHHHHHHHH");
             } else if(command.startsWith("facts about ") || command.startsWith("facts."))
             {
                 String topic = "";
@@ -1409,7 +1417,7 @@ public class PPbot extends PircBot
                 Vector<Reminder> leftReminders = new Vector<Reminder>();
                 for(Reminder r : dstReminders)
                 {
-                    if((r.when != 0) && (r.when > now))
+                    if((r.when != 0) && (r.when < now))
                     {
                         local_sendMessage(r.destination, r.destination + ": " + r.toString());
                         //local_sendMessage(r.channel, r.destination + ": " + r.toString());
