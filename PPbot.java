@@ -118,6 +118,8 @@ public class PPbot extends PircBot
     Hashtable<String, Vector<Reminder> > reminders = new Hashtable<String, Vector<Reminder> >();
     Timer reminderTimer;
 
+    Vector<String> sunglassesWaitlist = new Vector<String>();
+
     class ReminderTask extends TimerTask
     {
         public void run()
@@ -546,7 +548,8 @@ public class PPbot extends PircBot
             } else if(command.endsWith("..."))
             {
                 sendAction(channel, "puts on sunglasses");
-                local_sendMessage(channel, line_header() + "YEAAAAAAAAAAHHHHHHHHHHH");
+                if(!sunglassesWaitlist.contains(sender.toLowerCase()))
+                    sunglassesWaitlist.addElement(sender.toLowerCase());
             } else if(command.startsWith("facts about ") || command.startsWith("facts."))
             {
                 String topic = "";
@@ -770,6 +773,13 @@ public class PPbot extends PircBot
     {
         if(sender.equals(getNick()))
             return;
+
+        // process sunglasses
+        if(sunglassesWaitlist.contains(sender.toLowerCase()))
+        {
+            sunglassesWaitlist.removeElement(sender.toLowerCase());
+            local_sendMessage("#" + this.channel, line_header() + sender + ": YEAAAAAAAAAAAAHHHHH");
+        }
 
         checkReminders(sender);
 
