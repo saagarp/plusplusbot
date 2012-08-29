@@ -15,6 +15,7 @@ public class PPbot extends PircBot
     final static int T_DELTA = 4;
 
     final String[][] triggers = {
+        /*
 //  {string nick,       bool exact, string match,   string variable,                 int delta}
     {"danyell",         "false",    "hah",          "danyell.says.hah",              "1"},
     {"BungoDanderfluff","true",     "meow",         "meow",                          "1"},
@@ -38,7 +39,7 @@ public class PPbot extends PircBot
     {"danyell",         "false",    "hah",          "danyell.says.hah",             "1"},
     {"beatsake",        "false",    "hotpot",       "beatsake.mentions.hot.pot",    "1"},
     {"beatsake",        "false",    "hot pot",      "beatsake.mentions.hot.pot",    "1"},
-    {"beatsake",        "false",    "hot.pot",      "beatsake.mentions.hot.pot",    "1"}};
+    {"beatsake",        "false",    "hot.pot",      "beatsake.mentions.hot.pot",    "1"} */};
 
     final String MAGIC_RESPONSE_CATEGORY = "magic8ball";
     final String[] blacklistUsers = {"dongbot"};
@@ -50,6 +51,7 @@ public class PPbot extends PircBot
 
     class Parse
     {
+        public String channel;
         public String sender;
         public String key;
         public long when;
@@ -83,6 +85,10 @@ public class PPbot extends PircBot
     Hashtable<String, Vector<String> > links = new Hashtable<String, Vector<String> >();
 
     Hashtable<String, Vector<String> > facts = new Hashtable<String, Vector<String> >();
+
+    Vector<Parse> pendingParseResults = new Vector<Parse>();
+    Timer pendingResultsTimer;
+    static final long PENDING_RESULTS_TIMER_MILLIS = 5 * 1000; // 5 seconds
 
     class Reminder
     {
@@ -125,6 +131,14 @@ public class PPbot extends PircBot
         public void run()
         {
             checkTimedReminders();
+        }
+    };
+
+    class PendingResultsTask extends TimerTask
+    {
+        public void run()
+        {
+            postPendingResults();
         }
     };
 
@@ -171,6 +185,7 @@ public class PPbot extends PircBot
 
         reminderTimer = new Timer();
         reminderTimer.schedule(new ReminderTask(), 0, REMINDER_TIMER_PERIOD);
+        pendingResultsTimer = new Timer();
     }
 
     public Vector<String> getMatches(String regex, String text)
@@ -242,7 +257,23 @@ public class PPbot extends PircBot
         else
             values.put(key, new Integer(values.get(key).intValue() + delta));
 
-        displayValue(channel, sender, key);
+        if(channel.equalsIgnoreCase("#" + this.channel))
+        {
+            synchronized(pendingParseResults)
+            {
+                Parse p = new Parse();
+                p.sender = sender;
+                p.channel = channel;
+                p.key = key;
+                pendingParseResults.addElement(p);
+                pendingResultsTimer.cancel();
+                pendingResultsTimer = new Timer();
+                pendingResultsTimer.schedule(new PendingResultsTask(), PENDING_RESULTS_TIMER_MILLIS);
+            }
+        } else
+        {
+            displayValue(channel, sender, key);
+        }
     }
 
     // returns true if keys is not a unique set
@@ -545,6 +576,9 @@ public class PPbot extends PircBot
             } else if(command.equalsIgnoreCase("rimjob"))
             {
                 local_sendMessage(channel, line_header() + "ba-dum-tush!");
+            } else if(command.equalsIgnoreCase("date"))
+            {
+                local_sendMessage(channel, line_header() + "yo, it's " + (new Date().toString()));
             } else if(command.endsWith("..."))
             {
                 sendAction(channel, "puts on sunglasses");
@@ -1159,11 +1193,13 @@ public class PPbot extends PircBot
             }
         } 
 
+/*
         GregorianCalendar lolcal = new GregorianCalendar();
         if(lolcal.get(Calendar.DAY_OF_WEEK) == lolcal.FRIDAY)
             changeNick(getNick().toUpperCase());
         else
             changeNick(getNick().toLowerCase());
+            */
     }
 
     public String valueString(String key, boolean trim)
@@ -1270,6 +1306,7 @@ public class PPbot extends PircBot
 
     public void local_sendMessage(String channel, String message)
     {
+        /*
         GregorianCalendar lolcal = new GregorianCalendar();
         if(lolcal.get(Calendar.DAY_OF_WEEK) == lolcal.FRIDAY)
         {
@@ -1279,6 +1316,7 @@ public class PPbot extends PircBot
         {
             changeNick(getNick().toLowerCase());
         }
+        */
 
         boolean needsSplit = message.length() > MAX_MESSAGE_LEN;
 
@@ -1459,6 +1497,35 @@ public class PPbot extends PircBot
 
                 reminders.put(dst, leftReminders);
             }
+        }
+    }
+
+    public void postPendingResults()
+    {
+        synchronized(pendingParseResults)
+        {
+            System.out.println("pending parse task");
+
+            int len = pendingParseResults.size();
+            String msg = line_header();
+            int sublen = ((MAX_MESSAGE_LEN-msg.length()) / len) - 5;
+
+            Iterator<Parse> i = pendingParseResults.iterator();
+            while(i.hasNext())
+            {
+                Parse current = i.next();
+                String tmp = valueString(current.key, true);
+
+                if(tmp.length() > sublen)
+                    tmp = tmp.substring(0, sublen) + "...; ";
+                else
+                    tmp += "; ";
+
+                msg += tmp;
+            }
+           
+            local_sendMessage("#" + channel, msg);
+            pendingParseResults.clear();
         }
     }
 }
