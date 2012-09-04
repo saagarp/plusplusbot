@@ -88,7 +88,7 @@ public class PPbot extends PircBot
 
     Vector<Parse> pendingParseResults = new Vector<Parse>();
     Timer pendingResultsTimer;
-    static final long PENDING_RESULTS_TIMER_MILLIS = 1 * 1000; // 5 seconds
+    static final long PENDING_RESULTS_TIMER_MILLIS = 15 * 1000; // 15 seconds
 
     class Reminder
     {
@@ -1324,7 +1324,7 @@ public class PPbot extends PircBot
         if(subIndex > 0)
             ret += what.substring(0, subIndex);
 
-        ret += "_";
+        ret += "#";
             
         if((subIndex+1) < what.length())
             ret += what.substring(subIndex+1);
