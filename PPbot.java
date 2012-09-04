@@ -1277,7 +1277,7 @@ public class PPbot extends PircBot
             }
         }
 
-        return key + " = " + sum + suffix;
+        return userNameFilter(key) + " = " + sum + suffix;
     }
 
     public void displayValue(String channel, String sender, String key)
