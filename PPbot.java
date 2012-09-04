@@ -88,7 +88,7 @@ public class PPbot extends PircBot
 
     Vector<Parse> pendingParseResults = new Vector<Parse>();
     Timer pendingResultsTimer;
-    static final long PENDING_RESULTS_TIMER_MILLIS = 5 * 1000; // 5 seconds
+    static final long PENDING_RESULTS_TIMER_MILLIS = 15 * 1000; // 5 seconds
 
     class Reminder
     {
@@ -1236,7 +1236,7 @@ public class PPbot extends PircBot
                     String otherKey = targets.elementAt(i);
                     Integer tmp = values.get(otherKey);
 
-                    suffixes.add(otherKey + ": " + tmp.intValue());
+                    suffixes.add(userNameFilter(otherKey) + ": " + tmp.intValue());
                     sum += tmp.intValue();
                 }
 
@@ -1270,7 +1270,7 @@ public class PPbot extends PircBot
                     String otherKey = targets.elementAt(i);
                     Integer tmp = values.get(otherKey);
 
-                    suffix += otherKey + ": " + tmp.intValue() + ((i != (targets.size() - 1)) ? ", " : "");
+                    suffix += userNameFilter(otherKey) + ": " + tmp.intValue() + ((i != (targets.size() - 1)) ? ", " : "");
 
                     sum += tmp.intValue();
                 }
@@ -1283,6 +1283,34 @@ public class PPbot extends PircBot
     public void displayValue(String channel, String sender, String key)
     {
         local_sendMessage_carefully(channel, sender, line_header() + valueString(key, true) + "\n");
+    }
+
+    /* filter out any matching usernames so they don't get pinged */
+    public String userNameFilter(String what)
+    {
+        String lower = what.toLowerCase();
+
+        String remove = null;
+
+        User[] users = getUsers("#" + channel);
+        for(int i = 0; i < users.length; i++)
+        {
+            if(lower.contains(users[i].getNick().toLowerCase()))
+            {
+                remove = users[i].getNick();
+                break;
+            } else if(lower.contains(users[i].getPrefix().toLowerCase()))
+            {
+                remove = users[i].getPrefix();
+                break;
+            }
+        }
+
+        if(remove == null)
+            return what;
+
+        int subIndex = lower.indexOf(remove.toLowerCase());
+        return what.substring(0, subIndex) + "_" + what.substring(subIndex+1);
     }
 
     public void sendRandomFact(String channel)
