@@ -88,7 +88,7 @@ public class PPbot extends PircBot
 
     Vector<Parse> pendingParseResults = new Vector<Parse>();
     Timer pendingResultsTimer;
-    static final long PENDING_RESULTS_TIMER_MILLIS = 15 * 1000; // 5 seconds
+    static final long PENDING_RESULTS_TIMER_MILLIS = 1 * 1000; // 5 seconds
 
     class Reminder
     {
@@ -1292,16 +1292,17 @@ public class PPbot extends PircBot
 
         String remove = null;
 
+        /* find any matches */
         User[] users = getUsers("#" + channel);
         for(int i = 0; i < users.length; i++)
         {
-            if(lower.contains(users[i].getNick().toLowerCase()))
+            StringTokenizer st = new StringTokenizer(users[i].getNick(), "|[]-_|{}`");
+            String user = st.nextToken();
+
+            System.out.println(" check: " + user);
+            if((user.length() > 2) && lower.contains(user.toLowerCase()))
             {
-                remove = users[i].getNick();
-                break;
-            } else if(lower.contains(users[i].getPrefix().toLowerCase()))
-            {
-                remove = users[i].getPrefix();
+                remove = user;
                 break;
             }
         }
@@ -1309,8 +1310,26 @@ public class PPbot extends PircBot
         if(remove == null)
             return what;
 
+        /* figure out where to insert the _ */
         int subIndex = lower.indexOf(remove.toLowerCase());
-        return what.substring(0, subIndex) + "_" + what.substring(subIndex+1);
+        Random r = new Random();
+    
+        subIndex += r.nextInt(remove.length());
+
+        System.out.println("filtering " + remove + " from position " + subIndex);
+
+        /* build response */
+        String ret = "";
+
+        if(subIndex > 0)
+            ret += what.substring(0, subIndex);
+
+        ret += "_";
+            
+        if((subIndex+1) < what.length())
+            ret += what.substring(subIndex+1);
+
+        return ret;
     }
 
     public void sendRandomFact(String channel)
