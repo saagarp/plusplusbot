@@ -1565,15 +1565,27 @@ public class PPbot extends PircBot
         {
             System.out.println("pending parse task");
 
-            int len = pendingParseResults.size();
+            Vector<String> uniqueList = new Vector<String>();
+
+            {
+                Iterator<Parse> i = pendingParseResults.iterator();
+                while(i.hasNext())
+                {
+                    Parse current = i.next();
+                    if(uniqueList.contains(current.key))
+                        continue;
+                    else
+                        uniqueList.addElement(current.key);
+                }
+            }
+
+            int len = uniqueList.size();
             String msg = line_header();
             int sublen = ((MAX_MESSAGE_LEN-msg.length()) / len) - 5;
 
-            Iterator<Parse> i = pendingParseResults.iterator();
-            while(i.hasNext())
+            for(int i = 0; i < uniqueList.size(); i++)
             {
-                Parse current = i.next();
-                String tmp = valueString(current.key, true);
+                String tmp = valueString(uniqueList.elementAt(i), true);
 
                 if(tmp.length() > sublen)
                     tmp = tmp.substring(0, sublen) + "...; ";
