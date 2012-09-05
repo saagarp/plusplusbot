@@ -45,6 +45,8 @@ public class PPbot extends PircBot
     final String[] blacklistUsers = {"dongbot"};
     final String[] blacklistKeys = {"gogurt"};
 
+    final String[] FILTERED_STRINGS = {"saagar", "ted"};
+
     static final int MAX_MESSAGE_LEN = 400;
 
     static final String KEY_REGEX = "[\\[\\]\\w\\._\\-|\\{\\}]{2,}";
@@ -1296,13 +1298,23 @@ public class PPbot extends PircBot
         User[] users = getUsers("#" + channel);
         for(int i = 0; i < users.length; i++)
         {
-            StringTokenizer st = new StringTokenizer(users[i].getNick(), "|[]-_|{}`");
+            StringTokenizer st = new StringTokenizer(users[i].getNick(), "|-_|`");
             String user = st.nextToken();
 
-            System.out.println(" check: " + user);
             if((user.length() > 2) && lower.contains(user.toLowerCase()))
             {
                 remove = user;
+                break;
+            }
+        }
+
+        for(int i = 0; i < FILTERED_STRINGS.length; i++)
+        {
+            String str = FILTERED_STRINGS[i];
+
+            if(lower.contains(str.toLowerCase()))
+            {
+                remove = str;
                 break;
             }
         }
