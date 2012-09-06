@@ -15,7 +15,6 @@ public class PPbot extends PircBot
     final static int T_DELTA = 4;
 
     final String[][] triggers = {
-        /*
 //  {string nick,       bool exact, string match,   string variable,                 int delta}
     {"danyell",         "false",    "hah",          "danyell.says.hah",              "1"},
     {"BungoDanderfluff","true",     "meow",         "meow",                          "1"},
@@ -39,7 +38,7 @@ public class PPbot extends PircBot
     {"danyell",         "false",    "hah",          "danyell.says.hah",             "1"},
     {"beatsake",        "false",    "hotpot",       "beatsake.mentions.hot.pot",    "1"},
     {"beatsake",        "false",    "hot pot",      "beatsake.mentions.hot.pot",    "1"},
-    {"beatsake",        "false",    "hot.pot",      "beatsake.mentions.hot.pot",    "1"} */};
+    {"beatsake",        "false",    "hot.pot",      "beatsake.mentions.hot.pot",    "1"} };
 
     final String MAGIC_RESPONSE_CATEGORY = "magic8ball";
     final String[] blacklistUsers = {"dongbot"};
@@ -885,8 +884,19 @@ public class PPbot extends PircBot
             Matcher matcher = pattern.matcher(message.toLowerCase());
             if(matcher.find())
             {
-                local_sendMessage(channel, sender + ": " + triggers[i][T_VARIABLE] + "++");
                 applyMatch(getNick(), channel, triggers[i][T_VARIABLE], Integer.parseInt(triggers[i][T_DELTA]), false);
+
+                synchronized(pendingParseResults)
+                {
+                    Parse p = new Parse();
+                    p.sender = sender;
+                    p.channel = channel;
+                    p.key = triggers[i][T_VARIABLE];
+                    pendingParseResults.addElement(p);
+                    pendingResultsTimer.cancel();
+                    pendingResultsTimer = new Timer();
+                    pendingResultsTimer.schedule(new PendingResultsTask(), PENDING_RESULTS_TIMER_MILLIS);
+                }
             }
         }
 
