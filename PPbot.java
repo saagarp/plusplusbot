@@ -325,6 +325,43 @@ public class PPbot extends PircBot
                 String arg = command.substring(2).trim().toLowerCase();
                 sendKeyedLinkStatistics(channel, sender, arg);
 
+
+            } else if(command.startsWith("?++") || command.startsWith("?--"))
+            {
+                String arg = command.substring(3).trim().toLowerCase();
+
+                Vector<String> options = new Vector<String>();
+                String key;
+
+                Enumeration<String> keys = values.keys();
+                while(keys.hasMoreElements())
+                {
+                    key = keys.nextElement();
+                    if(key.toLowerCase().contains(arg.toLowerCase()))
+                        options.addElement(key);
+                }
+
+                if(options.size() == 0)
+                {
+                    String result = line_header() + "no results found, sorry";
+                    local_sendMessage_carefully(channel, sender, result);
+                } else
+                {
+                    // pick one and upvote randomly
+                    key = options.elementAt((int)(options.size() * Math.random()));
+
+                    if(command.startsWith("?++"))
+                    {
+                        String result = line_header() + options.size() + " found; we'll go with " + key + "++";
+                        applyMatch(sender, channel, key, 1, true);
+                        local_sendMessage_carefully(channel, sender, result);
+                    } else 
+                    {
+                        String result = line_header() + options.size() + " found; we'll go with " + key + "--";
+                        applyMatch(sender, channel, key, -1, true);
+                        local_sendMessage_carefully(channel, sender, result);
+                    }
+                }
             } else if(command.startsWith("?"))
             {
                 String arg = command.substring(1).trim().toLowerCase();
@@ -1410,10 +1447,12 @@ public class PPbot extends PircBot
     {
         if(!channel.equals(sender) && (message.length() > MAX_MESSAGE_LEN))
         {
-            String tooLong = line_header() + "Hey, the response to your query was too fucking long (" + (message.length() / MAX_MESSAGE_LEN) + " pages.) Here's the first page, and your good friend " + sender + " can have the rest via PM. If you want to see the full results, run that shit yourself.";
+            String tooLong = line_header() + "Hey, the response to your query was too fucking long (" + ((message.length()+MAX_MESSAGE_LEN-1) / MAX_MESSAGE_LEN) + " pages.) Here's the whole thing via PM.";
 
-            local_sendMessage(channel, tooLong);
-            local_sendMessage(channel, message.substring(0, MAX_MESSAGE_LEN-3) + "...");
+            String trimFooter = "... [trimmed]";
+
+            local_sendMessage(channel, message.substring(0, MAX_MESSAGE_LEN-trimFooter.length()) + trimFooter);
+            local_sendMessage(sender, tooLong);
             local_sendMessage(sender, message);
         } else
         {
