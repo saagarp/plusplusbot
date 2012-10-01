@@ -39,6 +39,7 @@ public class PPbot extends PircBot
     {"beatsake",        "false",    "hotpot",       "beatsake.mentions.hot.pot",    "1"},
     {"beatsake",        "false",    "hot pot",      "beatsake.mentions.hot.pot",    "1"},
     {"beatsake",        "false",    "hot.pot",      "beatsake.mentions.hot.pot",    "1"},
+    {"",                "false",    "cats--",       "cat.hater",                    "-10"},
     {"corioliss",       "false",    "ducks",        "corioliss.ducks",              "1"} };
 
     final String MAGIC_RESPONSE_CATEGORY = "magic8ball";
