@@ -157,7 +157,7 @@ public class PPbot extends PircBot
     String fact_file;
     String fact_file_backup;
 
-    public PPbot(String channel, String name) {
+    public PPbot(String channel, String name, String password) {
         this.channel = channel;
         data_file = channel + ".dat";
         data_file_backup = channel + ".dat.bak";
@@ -168,7 +168,7 @@ public class PPbot extends PircBot
     
         this.setAutoNickChange(true);
         this.setName(name);
-        this.identify("bypyk6k9");
+        this.identify(password);
 
         restoreData();
 
