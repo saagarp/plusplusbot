@@ -2,6 +2,7 @@ import org.jibble.pircbot.*;
 import java.util.*;
 import java.text.*;
 import java.util.regex.*;
+import java.net.*;
 import java.io.*;
 
 public class PPbot extends PircBot
@@ -39,7 +40,9 @@ public class PPbot extends PircBot
     {"beatsake",        "false",    "hotpot",       "beatsake.mentions.hot.pot",    "1"},
     {"beatsake",        "false",    "hot pot",      "beatsake.mentions.hot.pot",    "1"},
     {"beatsake",        "false",    "hot.pot",      "beatsake.mentions.hot.pot",    "1"},
-    {"corioliss",       "false",    "ducks",        "corioliss.ducks",              "1"} };
+    {"corioliss",       "false",    "ducks",        "corioliss.ducks",              "1"},
+    {"",                "false",    "seems good bro", "bro.yin",                    "1"},
+    {"",                "false",    "seems bad bro", "bro.yang",                   "1"} };
 
     final String MAGIC_RESPONSE_CATEGORY = "magic8ball";
     final String[] blacklistUsers = {"dongbot"};
@@ -80,7 +83,9 @@ public class PPbot extends PircBot
         }
     }
 
-    static final long RECENT_WINDOW_MILLISECONDS = 30 * 60 * 1000; // 30 minutes
+    static final long RECENT_WINDOW_MILLISECONDS = 5 * 60 * 1000; // 5 minutes
+    static final long MAX_PARSE_WINDOW_COUNT = 5;
+    static final long KICK_MAX_PARSE_WINDOW_COUNT = 8;
 
     Hashtable<String, Integer> values = new Hashtable<String, Integer>();
     Vector<Parse> recentParses = new Vector<Parse>();
@@ -90,7 +95,7 @@ public class PPbot extends PircBot
 
     Vector<Parse> pendingParseResults = new Vector<Parse>();
     Timer pendingResultsTimer;
-    static final long PENDING_RESULTS_TIMER_MILLIS = 15 * 1000; // 15 seconds
+    static final long PENDING_RESULTS_TIMER_MILLIS = 30 * 1000; // 30 seconds
 
     class Reminder
     {
@@ -163,7 +168,7 @@ public class PPbot extends PircBot
     
         this.setAutoNickChange(true);
         this.setName(name);
-        this.identify("5tr1p4m3");
+        this.identify("bypyk6k9");
 
         restoreData();
 
@@ -226,6 +231,7 @@ public class PPbot extends PircBot
         {
             // expire anything before expiry_millis
             long expiry_millis = ((new Date()).getTime() - RECENT_WINDOW_MILLISECONDS);
+            int parseCountBySender = 0;
 
             // check the recent parses list to make sure it's not too soon
             Iterator<Parse> i = recentParses.iterator();
@@ -243,15 +249,29 @@ public class PPbot extends PircBot
                     format.setTimeZone(TimeZone.getTimeZone("GMT"));
                     local_sendMessage(sender, line_header() + "sorry, " + sender + ", but you can't change \"" + key + "\" for another " + format.format(expiry));
                     return;
+                } else if(current.sender.equalsIgnoreCase(sender))
+                {
+                    parseCountBySender++;
                 }
             }
 
+            if(parseCountBySender >= KICK_MAX_PARSE_WINDOW_COUNT)
+            {
+                kick(channel, sender, "stop abusing the bot");
+            } else if(parseCountBySender >= MAX_PARSE_WINDOW_COUNT)
+            {
+                sendMessage(sender, line_header() + "sorry, you are limited to " + MAX_PARSE_WINDOW_COUNT + " parses within a " + (RECENT_WINDOW_MILLISECONDS / 1000 / 60) + " minute period. you're at " + parseCountBySender + ", and at " + KICK_MAX_PARSE_WINDOW_COUNT + ", I'll start being a dick.");
+            }
+             
             // it's valid! add it to recent parses
             Parse p = new Parse();
             p.sender = sender;
             p.key = key;
             p.when = (new Date()).getTime();
             recentParses.add(p);
+
+            if(parseCountBySender >= MAX_PARSE_WINDOW_COUNT)
+                return;
         }
 
         if(!values.containsKey(key))
@@ -294,541 +314,563 @@ public class PPbot extends PircBot
     {
         // process commands only if we're specifically targetted
         String commandHeader = getNick() + ":";
+        String command = "";
+        String commandCase = "";
+
         if(message.toLowerCase().startsWith(commandHeader.toLowerCase()))
         {
-            String command = message.substring(commandHeader.length()+1).trim().toLowerCase();
-            String commandCase = message.substring(commandHeader.length()+1).trim();
-            // top or '?' => default query
-            System.out.println("command = " + command);
+            command = message.substring(commandHeader.length()+1).trim().toLowerCase();
+            commandCase = message.substring(commandHeader.length()+1).trim();
+        }
+        
+        // if privmsg and no header, try parsing it as a command
+        if(channel.equals(sender) && (command.length() == 0))
+        {
+            // no need for header in privmsg
+            command = message.toLowerCase();
+            commandCase = message;
+        } 
 
-            if(command.equals("?") || command.equals("top"))
-            {
-                sendStatistics(channel, 5);
+        if(command.length() == 0)
+        {
+            return;
+        }
 
-            } else if(command.startsWith("top")) //top N
+        // top or '?' => default query
+        System.out.println("command = " + command);
+
+        if(command.equals("?") || command.equals("top"))
+        {
+            sendStatistics(channel, 5);
+
+        } else if(command.startsWith("top")) //top N
+        {
+            String arg = command.substring(3).trim();
+            try
             {
-                String arg = command.substring(3).trim();
-                try
+                int n = Integer.parseInt(arg);
+                if(n > 25)
+                    n = 25;
+                sendStatistics(channel, n);
+            } catch(Exception e)
+            {
+                local_sendMessage(sender, line_header() + "sorry, but I didn't understand the argument to that command!");
+                e.printStackTrace();
+            }
+
+        } else if(command.startsWith("??"))
+        {
+            String arg = command.substring(2).trim().toLowerCase();
+            sendKeyedLinkStatistics(channel, sender, arg);
+
+
+        } else if(command.startsWith("?++") || command.startsWith("?--"))
+        {
+            String arg = command.substring(3).trim().toLowerCase();
+
+            Vector<String> options = new Vector<String>();
+            String key;
+
+            Enumeration<String> keys = values.keys();
+            while(keys.hasMoreElements())
+            {
+                key = keys.nextElement();
+                if(key.toLowerCase().contains(arg.toLowerCase()))
+                    options.addElement(key);
+            }
+
+            if(options.size() == 0)
+            {
+                String result = line_header() + "no results found, sorry";
+                local_sendMessage_carefully(channel, sender, result);
+            } else
+            {
+                // pick one and upvote randomly
+                key = options.elementAt((int)(options.size() * Math.random()));
+
+                if(command.startsWith("?++"))
                 {
-                    int n = Integer.parseInt(arg);
-                    if(n > 25)
-                        n = 25;
-                    sendStatistics(channel, n);
-                } catch(Exception e)
+                    String result = line_header() + options.size() + " found; we'll go with " + key + "++";
+                    applyMatch(sender, channel, key, 1, true);
+//                        local_sendMessage_carefully(channel, sender, result);
+                } else 
                 {
-                    local_sendMessage(sender, line_header() + "sorry, but I didn't understand the argument to that command!");
-                    e.printStackTrace();
+                    String result = line_header() + options.size() + " found; we'll go with " + key + "--";
+                    applyMatch(sender, channel, key, -1, true);
+//                        local_sendMessage_carefully(channel, sender, result);
+                }
+            }
+        } else if(command.startsWith("?"))
+        {
+            String arg = command.substring(1).trim().toLowerCase();
+            sendKeyedStatistics(channel, sender, arg);
+
+        } else if(command.contains("+="))
+        {
+            Vector<String> postUpdates = new Vector<String>();
+
+            // parse out the two strings
+            Pattern p = Pattern.compile("(" + KEY_REGEX + ")\\s*\\+=\\s*(" + KEY_REGEX + ")");
+            Matcher m = p.matcher(message);
+            match_add: while(m.find())
+            {
+                System.out.println("linking " + m.group(1) + " to " + m.group(2));
+
+                String dest = m.group(1).toLowerCase();
+                String src = m.group(2).toLowerCase();
+
+                for(int i = 0; i < blacklistKeys.length; i++)
+                {
+                    if(src.equalsIgnoreCase(blacklistKeys[i]))
+                    {
+                        local_sendMessage(sender, line_header() + "sorry, but " + src +" has been identified as a topic of great contention and been blacklisted");
+                        blacklistCallOut(sender, src);
+                        continue match_add;
+                    }
                 }
 
-            } else if(command.startsWith("??"))
-            {
-                String arg = command.substring(2).trim().toLowerCase();
-                sendKeyedLinkStatistics(channel, sender, arg);
-
-
-            } else if(command.startsWith("?++") || command.startsWith("?--"))
-            {
-                String arg = command.substring(3).trim().toLowerCase();
-
-                Vector<String> options = new Vector<String>();
-                String key;
-
-                Enumeration<String> keys = values.keys();
-                while(keys.hasMoreElements())
+                if(dest.equals(src))
                 {
-                    key = keys.nextElement();
-                    if(key.toLowerCase().contains(arg.toLowerCase()))
-                        options.addElement(key);
+                        local_sendMessage(sender, line_header() + "sorry, but " + src + " can't be linked to itself!");
+                        continue;
+                } else if(dest.equalsIgnoreCase(sender))
+                {
+                        local_sendMessage(sender, line_header() + "sorry, but you can't link things to yourself!");
+                        continue;
                 }
 
-                if(options.size() == 0)
+                // make sure source exists
+                if(values.get(src) == null)
+                    values.put(src, new Integer(0));
+
+                if(values.get(dest) == null)
+                    values.put(dest, new Integer(0));
+
+                if(links.get(dest) == null)
                 {
-                    String result = line_header() + "no results found, sorry";
-                    local_sendMessage_carefully(channel, sender, result);
+                    Vector<String> targets = new Vector<String>();
+                    targets.add(src);
+                    links.put(dest, targets);
                 } else
                 {
-                    // pick one and upvote randomly
-                    key = options.elementAt((int)(options.size() * Math.random()));
+                    Vector<String> targets = links.get(dest);
 
-                    if(command.startsWith("?++"))
+                    if(targets.contains(src))
                     {
-                        String result = line_header() + options.size() + " found; we'll go with " + key + "++";
-                        applyMatch(sender, channel, key, 1, true);
-                        local_sendMessage_carefully(channel, sender, result);
-                    } else 
-                    {
-                        String result = line_header() + options.size() + " found; we'll go with " + key + "--";
-                        applyMatch(sender, channel, key, -1, true);
-                        local_sendMessage_carefully(channel, sender, result);
+                        local_sendMessage(sender, line_header() + "sorry, but " + src + " is already linked to " + dest);
+                        continue;
                     }
+
+                    targets.add(src);
+                    links.put(dest, targets);
                 }
-            } else if(command.startsWith("?"))
-            {
-                String arg = command.substring(1).trim().toLowerCase();
-                sendKeyedStatistics(channel, sender, arg);
 
-            } else if(command.contains("+="))
-            {
-                Vector<String> postUpdates = new Vector<String>();
+                if(!postUpdates.contains(dest))
+                    postUpdates.add(dest);
 
-                // parse out the two strings
-                Pattern p = Pattern.compile("(" + KEY_REGEX + ")\\s*\\+=\\s*(" + KEY_REGEX + ")");
-                Matcher m = p.matcher(message);
-                match_add: while(m.find())
+                local_sendMessage(sender, line_header() + "I have linked the key \"" + dest + "\" so that it is now dependent on \"" + src + "\"!");
+            }
+
+            for(int i = 0; i < postUpdates.size(); i++)
+            {
+                displayValue(sender, sender, postUpdates.elementAt(i));
+            }
+
+        } else if(command.contains("-="))
+        {
+            Vector<String> postUpdates = new Vector<String>();
+
+            // parse out the two strings
+            Pattern p = Pattern.compile("(" + KEY_REGEX + ")\\s*\\-=\\s*(" + KEY_REGEX + ")");
+            Matcher m = p.matcher(message);
+            while(m.find())
+            {
+                System.out.println("unlinking " + m.group(1) + " from " + m.group(2));
+
+                String dest = m.group(1).toLowerCase();
+                String src = m.group(2).toLowerCase();
+
+                if(dest.equals(src))
                 {
-                    System.out.println("linking " + m.group(1) + " to " + m.group(2));
+                        local_sendMessage(sender, line_header() + "sorry, but " + src + " can't be linked to itself!");
+                        continue;
+                } else if(dest.equalsIgnoreCase(sender))
+                {
+                        local_sendMessage(sender, line_header() + "sorry, but you can't unlink things to yourself!");
+                        continue;
+                }
 
-                    String dest = m.group(1).toLowerCase();
-                    String src = m.group(2).toLowerCase();
+                if(links.get(dest) == null)
+                {
+                    local_sendMessage(sender, line_header() + "sorry, but " + src + " isn't linked to " + dest);
+                } else
+                {
+                    Vector<String> targets = links.get(dest);
 
-                    for(int i = 0; i < blacklistKeys.length; i++)
+                    if(targets.contains(src))
                     {
-                        if(src.equalsIgnoreCase(blacklistKeys[i]))
-                        {
-                            local_sendMessage(sender, line_header() + "sorry, but " + src +" has been identified as a topic of great contention and been blacklisted");
-                            blacklistCallOut(sender, src);
-                            continue match_add;
-                        }
-                    }
-
-                    if(dest.equals(src))
-                    {
-                            local_sendMessage(sender, line_header() + "sorry, but " + src + " can't be linked to itself!");
-                            continue;
-                    } else if(dest.equalsIgnoreCase(sender))
-                    {
-                            local_sendMessage(sender, line_header() + "sorry, but you can't link things to yourself!");
-                            continue;
-                    }
-
-                    // make sure source exists
-                    if(values.get(src) == null)
-                        values.put(src, new Integer(0));
-
-                    if(values.get(dest) == null)
-                        values.put(dest, new Integer(0));
-
-                    if(links.get(dest) == null)
-                    {
-                        Vector<String> targets = new Vector<String>();
-                        targets.add(src);
+                        targets.remove(src);
                         links.put(dest, targets);
                     } else
-                    {
-                        Vector<String> targets = links.get(dest);
-
-                        if(targets.contains(src))
-                        {
-                            local_sendMessage(sender, line_header() + "sorry, but " + src + " is already linked to " + dest);
-                            continue;
-                        }
-
-                        targets.add(src);
-                        links.put(dest, targets);
-                    }
-
-                    if(!postUpdates.contains(dest))
-                        postUpdates.add(dest);
-
-                    local_sendMessage(sender, line_header() + "I have linked the key \"" + dest + "\" so that it is now dependent on \"" + src + "\"!");
-                }
-
-                for(int i = 0; i < postUpdates.size(); i++)
-                {
-                    displayValue(sender, sender, postUpdates.elementAt(i));
-                }
-
-            } else if(command.contains("-="))
-            {
-                Vector<String> postUpdates = new Vector<String>();
-
-                // parse out the two strings
-                Pattern p = Pattern.compile("(" + KEY_REGEX + ")\\s*\\-=\\s*(" + KEY_REGEX + ")");
-                Matcher m = p.matcher(message);
-                while(m.find())
-                {
-                    System.out.println("unlinking " + m.group(1) + " from " + m.group(2));
-
-                    String dest = m.group(1).toLowerCase();
-                    String src = m.group(2).toLowerCase();
-
-                    if(dest.equals(src))
-                    {
-                            local_sendMessage(sender, line_header() + "sorry, but " + src + " can't be linked to itself!");
-                            continue;
-                    } else if(dest.equalsIgnoreCase(sender))
-                    {
-                            local_sendMessage(sender, line_header() + "sorry, but you can't unlink things to yourself!");
-                            continue;
-                    }
-
-                    if(links.get(dest) == null)
                     {
                         local_sendMessage(sender, line_header() + "sorry, but " + src + " isn't linked to " + dest);
-                    } else
-                    {
-                        Vector<String> targets = links.get(dest);
-
-                        if(targets.contains(src))
-                        {
-                            targets.remove(src);
-                            links.put(dest, targets);
-                        } else
-                        {
-                            local_sendMessage(sender, line_header() + "sorry, but " + src + " isn't linked to " + dest);
-                            continue;
-                        }
+                        continue;
                     }
-
-                    if(!postUpdates.contains(dest))
-                        postUpdates.add(dest);
-
-                    local_sendMessage(sender, line_header() + "I have unlinked the key \"" + dest + "\" so that it is no longer dependent on \"" + src + "\"!");
                 }
 
-                for(int i = 0; i < postUpdates.size(); i++)
-                {
-                    displayValue(sender, sender, postUpdates.elementAt(i));
-                }
+                if(!postUpdates.contains(dest))
+                    postUpdates.add(dest);
 
-            } else if(command.startsWith("what the fuck is the score of") || command.startsWith("what the fuck is the value of"))
+                local_sendMessage(sender, line_header() + "I have unlinked the key \"" + dest + "\" so that it is no longer dependent on \"" + src + "\"!");
+            }
+
+            for(int i = 0; i < postUpdates.size(); i++)
             {
-                String arg = command.substring((new String("what the fuck is the score of")).length()).trim().toLowerCase();
-                int delim = arg.indexOf("?");
-                if(delim != -1)
-                {
-                    arg = arg.substring(0, delim);
-                }
-                sendKeyedStatistics(channel, sender, arg);
+                displayValue(sender, sender, postUpdates.elementAt(i));
+            }
 
-            } else if(command.startsWith("who the fuck cares about"))
+        } else if(command.startsWith("what the fuck is the score of") || command.startsWith("what the fuck is the value of"))
+        {
+            String arg = command.substring((new String("what the fuck is the score of")).length()).trim().toLowerCase();
+            int delim = arg.indexOf("?");
+            if(delim != -1)
             {
-                String arg = command.substring((new String("who the fuck cares about")).length()).trim().toLowerCase();
-                int delim = arg.indexOf("?");
-                if(delim != -1)
-                {
-                    arg = arg.substring(0, delim);
-                }
-                sendKeyedLinkStatistics(channel, sender, arg);
+                arg = arg.substring(0, delim);
+            }
+            sendKeyedStatistics(channel, sender, arg);
 
-            } else if(command.startsWith("remind"))
+        } else if(command.startsWith("who the fuck cares about"))
+        {
+            String arg = command.substring((new String("who the fuck cares about")).length()).trim().toLowerCase();
+            int delim = arg.indexOf("?");
+            if(delim != -1)
             {
-                String patterns_dated_prefix[]  = {"remind (\\S+) at (.+) to (.+)",  "remind (\\S+) at (.+) that (.+)"};
-                String patterns_dated_postfix[] = {"remind (\\S+) to (.+) at (.+)$", "remind (\\S+) that (.+) at (.+)"};
-                String patterns_undated[]       = {"remind (\\S+) to (.+)",          "remind (\\S+) that (.+)"};
+                arg = arg.substring(0, delim);
+            }
+            sendKeyedLinkStatistics(channel, sender, arg);
 
-                Reminder reminder = null;
-                try
+        } else if(command.startsWith("remind"))
+        {
+            String patterns_dated_prefix[]  = {"remind (\\S+) at (.+) to (.+)",  "remind (\\S+) at (.+) that (.+)"};
+            String patterns_dated_postfix[] = {"remind (\\S+) to (.+) at (.+)$", "remind (\\S+) that (.+) at (.+)"};
+            String patterns_undated[]       = {"remind (\\S+) to (.+)",          "remind (\\S+) that (.+)"};
+
+            Reminder reminder = null;
+            try
+            {
+                if(reminder == null)
+                    reminder = parseReminder(patterns_dated_prefix, sender, command, 1, 2, 3);
+                if(reminder == null)
+                    reminder = parseReminder(patterns_dated_postfix, sender, command, 1, 3, 2);
+                if(reminder == null)
+                    reminder = parseReminder(patterns_undated, sender, command, 1, 0, 2);
+
+                if(reminder == null)
                 {
-                    if(reminder == null)
-                        reminder = parseReminder(patterns_dated_prefix, sender, command, 1, 2, 3);
-                    if(reminder == null)
-                        reminder = parseReminder(patterns_dated_postfix, sender, command, 1, 3, 2);
-                    if(reminder == null)
-                        reminder = parseReminder(patterns_undated, sender, command, 1, 0, 2);
+                    local_sendMessage(sender, line_header() + "sorry, but I couldn't parse your reminder. You should probably consult the manual (or bitch in IRC).");
+                    return;
+                }
 
-                    if(reminder == null)
+                if(reminder.destination.equalsIgnoreCase(getNick()))
+                {
+                    local_sendMessage(sender, line_header() + "Thanks, but I don't need reminding.");
+                    return;
+                }
+
+                reminder.destination = reminder.destination.toLowerCase();
+
+                if(sender.equalsIgnoreCase(channel))
+                    reminder.channel = reminder.destination;
+                else
+                    reminder.channel = channel;
+
+                if((reminder.when == 0) && activityTracker.containsKey(reminder.destination))
+                {
+                    Long timestamp = activityTracker.get(reminder.destination);
+                    if(timestamp.longValue() > ((new Date()).getTime() - RECENT_ACTIVITY_MILLISECONDS))
                     {
-                        local_sendMessage(sender, line_header() + "sorry, but I couldn't parse your reminder. You should probably consult the manual (or bitch in IRC).");
+                        local_sendMessage(sender, line_header() + "sorry, but " + reminder.destination + " has been active recently. Fucking tell them yourself like a grownup.");
                         return;
                     }
+                }
 
-                    if(reminder.destination.equalsIgnoreCase(getNick()))
+                if((reminder.when != 0) && (reminder.when < (new Date()).getTime()))
+                {
+                    local_sendMessage(sender, line_header() + "I can't remind people of things in the past yet. Feature pending invention of time travel.");
+                    return;
+                }
+
+                synchronized(reminders)
+                {
+                    // only one reminder per src,dst pair
+                    if(!sender.equalsIgnoreCase(reminder.destination))
                     {
-                        local_sendMessage(sender, line_header() + "Thanks, but I don't need reminding.");
-                        return;
-                    }
-
-                    reminder.destination = reminder.destination.toLowerCase();
-
-                    if(sender.equalsIgnoreCase(channel))
-                        reminder.channel = reminder.destination;
-                    else
-                        reminder.channel = channel;
-
-                    if((reminder.when == 0) && activityTracker.containsKey(reminder.destination))
-                    {
-                        Long timestamp = activityTracker.get(reminder.destination);
-                        if(timestamp.longValue() > ((new Date()).getTime() - RECENT_ACTIVITY_MILLISECONDS))
+                        Vector<Reminder> destReminders = reminders.get(reminder.destination);
+                        if(destReminders != null)
                         {
-                            local_sendMessage(sender, line_header() + "sorry, but " + reminder.destination + " has been active recently. Fucking tell them yourself like a grownup.");
-                            return;
-                        }
-                    }
-
-                    if((reminder.when != 0) && (reminder.when < (new Date()).getTime()))
-                    {
-                        local_sendMessage(sender, line_header() + "I can't remind people of things in the past yet. Feature pending invention of time travel.");
-                        return;
-                    }
-
-                    synchronized(reminders)
-                    {
-                        // only one reminder per src,dst pair
-                        if(!sender.equalsIgnoreCase(reminder.destination))
-                        {
-                            Vector<Reminder> destReminders = reminders.get(reminder.destination);
-                            if(destReminders != null)
+                            for(int i = 0; i < destReminders.size(); i++)
                             {
-                                for(int i = 0; i < destReminders.size(); i++)
+                                Reminder r = destReminders.elementAt(i);
+                                if(r.sender.toLowerCase().contains(sender.toLowerCase()) || 
+                                   sender.toLowerCase().contains(r.sender.toLowerCase()))
                                 {
-                                    Reminder r = destReminders.elementAt(i);
-                                    if(r.sender.toLowerCase().contains(sender.toLowerCase()) || 
-                                       sender.toLowerCase().contains(r.sender.toLowerCase()))
-                                    {
-                                        local_sendMessage(sender, line_header() + " you can only have one active reminder per person, so I am removing your previous reminder: " + r.toString());
-                                        destReminders.removeElement(r);
-                                        break;
-                                    }
+                                    local_sendMessage(sender, line_header() + " you can only have one active reminder per person, so I am removing your previous reminder: " + r.toString());
+                                    destReminders.removeElement(r);
+                                    break;
                                 }
-
-                                reminders.put(reminder.destination, destReminders);
                             }
+
+                            reminders.put(reminder.destination, destReminders);
                         }
-
-                        Vector<Reminder> tmp = reminders.get(reminder.destination);
-                        if(tmp == null)
-                            tmp = new Vector<Reminder> ();
-                        tmp.addElement(reminder);
-                        reminders.put(reminder.destination, tmp);
                     }
 
-                    String out = "okay, ";
-                    if(reminder.when != 0)
+                    Vector<Reminder> tmp = reminders.get(reminder.destination);
+                    if(tmp == null)
+                        tmp = new Vector<Reminder> ();
+                    tmp.addElement(reminder);
+                    reminders.put(reminder.destination, tmp);
+                }
+
+                String out = "okay, ";
+                if(reminder.when != 0)
+                {
+                    SimpleDateFormat fmt = new SimpleDateFormat("MM/dd/yyyy 'at' hh:mm aa");
+                    out += "on or after " + fmt.format(new Date(reminder.when)) + ", ";
+                }
+                out += "I will remind " + reminder.destination + " of that when I see them. Keep in mind that reminders disappear if the bot crashes or is shut down, so don't rely on this for *super* important things.";
+                local_sendMessage(sender, line_header() + out);
+
+            } catch(ParseException pe)
+            {
+                local_sendMessage(sender, line_header() + "sorry, I couldn't parse your date!");
+                System.out.println(pe);
+            }
+
+           
+        } else if(command.equalsIgnoreCase("rimshot"))
+        {
+            local_sendMessage(channel, line_header() + "ba-dum-tish!");
+        } else if(command.equalsIgnoreCase("rimjob"))
+        {
+            local_sendMessage(channel, line_header() + "ba-dum-tush!");
+        } else if(command.equalsIgnoreCase("date"))
+        {
+            local_sendMessage(channel, line_header() + "yo, it's " + (new Date().toString()));
+        } else if(command.endsWith("..."))
+        {
+            sendAction(channel, "puts on sunglasses");
+            if(!sunglassesWaitlist.contains(sender.toLowerCase()))
+                sunglassesWaitlist.addElement(sender.toLowerCase());
+        } else if(command.startsWith("form of... ") && isChannelOp(sender))
+        {
+            String arg = command.substring((new String("form of... ")).length()).trim().toLowerCase();
+            changeNick(arg);
+
+        } else if(command.startsWith("facts about ") || command.startsWith("facts."))
+        {
+            String topic = "";
+            // subtopic
+            if(command.startsWith("facts about "))
+            {
+                topic = command.substring(command.indexOf("facts about ") + ("facts about ").length());
+                topic = topic.trim();
+            } else if(command.startsWith("facts."))
+            {
+                topic = command.substring(command.indexOf("facts.") + ("facts.").length());
+                topic = topic.trim();
+            }
+
+            if(topic.isEmpty())
+            {
+                local_sendMessage(sender, line_header() + "sorry, but you need to specify a topic for your query!");
+            } else
+            {
+                Vector<String> tmp = facts.get(topic);
+                if((tmp == null) || (tmp.size() == 0))
+                {
+                    local_sendMessage(channel, line_header() + "Sorry, but unfortunately I don't know anything about " + topic + ". :(");
+    
+                } else
+                {
+                    String factString = "Wait, you want to know everything about " + topic + "? Well, I know " + tmp.size() + " things. Here goes. ";
+                    for(int i = 0; i <tmp.size(); i++)
+                        factString += (i+1) + ") " + tmp.elementAt(i) + (((i+1) < tmp.size()) ? "; " : "");
+                    local_sendMessage_carefully(channel, sender, line_header() + factString);
+                }
+            }
+
+        } else if(command.startsWith("fact"))
+        {
+            String topic = "", factIndex = "";
+            int whichFact = -1;
+
+            // is there a subtopic?
+            if(command.startsWith("fact."))
+            {
+                String tmp = command.substring(command.indexOf("fact.") + ("fact.").length());
+                topic = tmp.trim();
+
+            } else if(command.startsWith("fact about "))
+            {
+                String tmp = command.substring(command.indexOf("fact about ") + ("fact about ").length());
+                topic = tmp.trim();
+            }
+
+            // if there's following text, try and parse it to a number
+            if(topic.contains(" "))
+            {
+                factIndex = topic.substring(topic.indexOf(" ") + 1);
+                topic = topic.substring(0, topic.indexOf(" "));
+                System.out.println("fact index is " + factIndex);
+            }
+
+            try
+            {
+                whichFact = Integer.parseInt(factIndex) - 1;
+            } catch(Exception e) {};
+
+            if(topic.isEmpty())
+            {
+                sendRandomFact(channel);
+            } else
+            {
+                Vector<String> tmp = facts.get(topic);
+                if((tmp == null) || (tmp.size() == 0))
+                {
+                    local_sendMessage(channel, line_header() + "Sorry, but unfortunately I don't know anything about " + topic + ". :(");
+    
+                } else
+                {
+                    if(whichFact == -1)
                     {
-                        SimpleDateFormat fmt = new SimpleDateFormat("MM/dd/yyyy 'at' hh:mm aa");
-                        out += "on or after " + fmt.format(new Date(reminder.when)) + ", ";
+                        whichFact = (int)(tmp.size()*Math.random());
+                        local_sendMessage_carefully(channel, sender, line_header() + "Let me tell you something random about " + topic + "! Fact #" + (whichFact+1) + ": " + tmp.elementAt(whichFact));
+                    } else
+                    {
+                        if(whichFact < 0)
+                            whichFact = 0;
+                        if(whichFact >= tmp.size())
+                            whichFact = tmp.size()-1;
+                        local_sendMessage_carefully(channel, sender, line_header() + "Let me tell you fact #" + (whichFact+1) + " about " + topic + ": " + tmp.elementAt(whichFact));
                     }
-                    out += "I will remind " + reminder.destination + " of that when I see them. Keep in mind that reminders disappear if the bot crashes or is shut down, so don't rely on this for *super* important things.";
-                    local_sendMessage(sender, line_header() + out);
-
-                } catch(ParseException pe)
-                {
-                    local_sendMessage(sender, line_header() + "sorry, I couldn't parse your date!");
-                    System.out.println(pe);
                 }
+            }
 
-               
-            } else if(command.equalsIgnoreCase("rimshot"))
-            {
-                local_sendMessage(channel, line_header() + "ba-dum-tish!");
-            } else if(command.equalsIgnoreCase("rimjob"))
-            {
-                local_sendMessage(channel, line_header() + "ba-dum-tush!");
-            } else if(command.equalsIgnoreCase("date"))
-            {
-                local_sendMessage(channel, line_header() + "yo, it's " + (new Date().toString()));
-            } else if(command.endsWith("..."))
-            {
-                sendAction(channel, "puts on sunglasses");
-                if(!sunglassesWaitlist.contains(sender.toLowerCase()))
-                    sunglassesWaitlist.addElement(sender.toLowerCase());
-            } else if(command.startsWith("facts about ") || command.startsWith("facts."))
-            {
-                String topic = "";
-                // subtopic
-                if(command.startsWith("facts about "))
-                {
-                    topic = command.substring(command.indexOf("facts about ") + ("facts about ").length());
-                    topic = topic.trim();
-                } else if(command.startsWith("facts."))
-                {
-                    topic = command.substring(command.indexOf("facts.") + ("facts.").length());
-                    topic = topic.trim();
-                }
+        } else if(command.startsWith("addfact"))
+        {
+            String topic = command.substring(command.indexOf("addfact.") + ("addfact.").length());
+            topic = topic.substring(0, topic.indexOf(" "));
 
-                if(topic.isEmpty())
+            if(topic.length() == 0)
+            {
+                local_sendMessage(sender, line_header() + "sorry, but you need to specify a topic for your fact! Something like:");
+                local_sendMessage(sender, getNick() + ": addfact.cats Cats have nine lives.");
+            } else
+            {
+                String fact = commandCase.substring(command.indexOf("addfact"));
+                fact = fact.substring(fact.indexOf(" ")).trim();
+
+                if(facts.get(topic) == null)
                 {
-                    local_sendMessage(sender, line_header() + "sorry, but you need to specify a topic for your query!");
+                    Vector<String> tmp = new Vector<String>();
+                    tmp.add(fact);
+                    facts.put(topic, tmp);
                 } else
                 {
                     Vector<String> tmp = facts.get(topic);
-                    if((tmp == null) || (tmp.size() == 0))
-                    {
-                        local_sendMessage(channel, line_header() + "Sorry, but unfortunately I don't know anything about " + topic + ". :(");
-        
-                    } else
-                    {
-                        String factString = "Wait, you want to know everything about " + topic + "? Well, I know " + tmp.size() + " things. Here goes. ";
-                        for(int i = 0; i <tmp.size(); i++)
-                            factString += (i+1) + ") " + tmp.elementAt(i) + (((i+1) < tmp.size()) ? "; " : "");
-                        local_sendMessage_carefully(channel, sender, line_header() + factString);
-                    }
+
+                    tmp.add(fact);
+                    facts.put(topic, tmp);
                 }
 
-            } else if(command.startsWith("fact"))
+                local_sendMessage(sender, line_header() + "Thanks! I now know " + facts.get(topic).size() + " thing[s] about " + topic + "!");
+            }
+        } else if(command.startsWith("deletefact"))
+        {
+            String topic = command.substring(command.indexOf("deletefact.") + ("deletefact.").length());
+            topic = topic.substring(0, topic.indexOf(" "));
+
+            if(topic.length() == 0)
             {
-                String topic = "", factIndex = "";
-                int whichFact = -1;
-
-                // is there a subtopic?
-                if(command.startsWith("fact."))
-                {
-                    String tmp = command.substring(command.indexOf("fact.") + ("fact.").length());
-                    topic = tmp.trim();
-
-                } else if(command.startsWith("fact about "))
-                {
-                    String tmp = command.substring(command.indexOf("fact about ") + ("fact about ").length());
-                    topic = tmp.trim();
-                }
-
-                // if there's following text, try and parse it to a number
-                if(topic.contains(" "))
-                {
-                    factIndex = topic.substring(topic.indexOf(" ") + 1);
-                    topic = topic.substring(0, topic.indexOf(" "));
-                    System.out.println("fact index is " + factIndex);
-                }
-
+                local_sendMessage(sender, line_header() + "sorry, but you need to specify a topic for your fact! Something like:");
+                local_sendMessage(sender, getNick() + ": deletefact.cats 3");
+            } else
+            {
+                String whichFact = commandCase.substring(command.indexOf("deletefact"));
+                whichFact = whichFact.substring(whichFact.indexOf(" ")).trim();
+                
+                int x = 0;
                 try
                 {
-                    whichFact = Integer.parseInt(factIndex) - 1;
-                } catch(Exception e) {};
-
-                if(topic.isEmpty())
-                {
-                    sendRandomFact(channel);
-                } else
-{
-                    Vector<String> tmp = facts.get(topic);
-                    if((tmp == null) || (tmp.size() == 0))
-                    {
-                        local_sendMessage(channel, line_header() + "Sorry, but unfortunately I don't know anything about " + topic + ". :(");
-        
-                    } else
-                    {
-                        if(whichFact == -1)
-                        {
-                            whichFact = (int)(tmp.size()*Math.random());
-                            local_sendMessage_carefully(channel, sender, line_header() + "Let me tell you something random about " + topic + "! Fact #" + (whichFact+1) + ": " + tmp.elementAt(whichFact));
-                        } else
-                        {
-                            if(whichFact < 0)
-                                whichFact = 0;
-                            if(whichFact >= tmp.size())
-                                whichFact = tmp.size()-1;
-                            local_sendMessage_carefully(channel, sender, line_header() + "Let me tell you fact #" + (whichFact+1) + " about " + topic + ": " + tmp.elementAt(whichFact));
-                        }
-                    }
-                }
-
-            } else if(command.startsWith("addfact"))
-            {
-                String topic = command.substring(command.indexOf("addfact.") + ("addfact.").length());
-                topic = topic.substring(0, topic.indexOf(" "));
-
-                if(topic.length() == 0)
-                {
-                    local_sendMessage(sender, line_header() + "sorry, but you need to specify a topic for your fact! Something like:");
-                    local_sendMessage(sender, getNick() + ": addfact.cats Cats have nine lives.");
-                } else
-                {
-                    String fact = commandCase.substring(command.indexOf("addfact"));
-                    fact = fact.substring(fact.indexOf(" ")).trim();
+                    x = Integer.parseInt(whichFact) - 1;
 
                     if(facts.get(topic) == null)
                     {
-                        Vector<String> tmp = new Vector<String>();
-                        tmp.add(fact);
-                        facts.put(topic, tmp);
+                        local_sendMessage(sender, line_header() + "sorry, but I don't know any facts about that topic!");
                     } else
                     {
                         Vector<String> tmp = facts.get(topic);
 
-                        tmp.add(fact);
-                        facts.put(topic, tmp);
-                    }
-
-                    local_sendMessage(sender, line_header() + "Thanks! I now know " + facts.get(topic).size() + " thing[s] about " + topic + "!");
-                }
-            } else if(command.startsWith("deletefact"))
-            {
-                String topic = command.substring(command.indexOf("deletefact.") + ("deletefact.").length());
-                topic = topic.substring(0, topic.indexOf(" "));
-
-                if(topic.length() == 0)
-                {
-                    local_sendMessage(sender, line_header() + "sorry, but you need to specify a topic for your fact! Something like:");
-                    local_sendMessage(sender, getNick() + ": deletefact.cats 3");
-                } else
-                {
-                    String whichFact = commandCase.substring(command.indexOf("deletefact"));
-                    whichFact = whichFact.substring(whichFact.indexOf(" ")).trim();
-                    
-                    int x = 0;
-                    try
-                    {
-                        x = Integer.parseInt(whichFact) - 1;
-
-                        if(facts.get(topic) == null)
+                        if((x < 0) || (x > tmp.size()))
                         {
-                            local_sendMessage(sender, line_header() + "sorry, but I don't know any facts about that topic!");
+                            local_sendMessage(sender, line_header() + "sorry, but the fact you want me to delete doesn't exist. I only know " + tmp.size() + " things about " + topic);
                         } else
                         {
-                            Vector<String> tmp = facts.get(topic);
-
-                            if((x < 0) || (x > tmp.size()))
-                            {
-                                local_sendMessage(sender, line_header() + "sorry, but the fact you want me to delete doesn't exist. I only know " + tmp.size() + " things about " + topic);
-                            } else
-                            {
-                                local_sendMessage(sender, line_header() + "I have removed the fact \"" + tmp.elementAt(x) + "\" from topic " + topic + ". Hope you're not changing history for the worse. I now know " + (tmp.size() - 1) + " thing[s] about " + topic + ".");
-                                tmp.removeElementAt(x);
-                                facts.put(topic, tmp);
-                            }
+                            local_sendMessage(sender, line_header() + "I have removed the fact \"" + tmp.elementAt(x) + "\" from topic " + topic + ". Hope you're not changing history for the worse. I now know " + (tmp.size() - 1) + " thing[s] about " + topic + ".");
+                            tmp.removeElementAt(x);
+                            facts.put(topic, tmp);
                         }
-
-                    } catch(Exception e)
-                    {
-                        local_sendMessage(sender, line_header() + "sorry, but you need to specify a fact number to remove! Something like:");
-                        local_sendMessage(sender, getNick() + ": deletefact.cats 3");
                     }
+
+                } catch(Exception e)
+                {
+                    local_sendMessage(sender, line_header() + "sorry, but you need to specify a fact number to remove! Something like:");
+                    local_sendMessage(sender, getNick() + ": deletefact.cats 3");
                 }
-            } else if(command.equals("stats") || command.equals("statistics"))
+            }
+        } else if(command.equals("stats") || command.equals("statistics"))
+        {
+            String tmp = "Let me tell you what I know. I am keeping track of " + values.size() + " individual scores. ";
+            
             {
-                String tmp = "Let me tell you what I know. I am keeping track of " + values.size() + " individual scores. ";
-                
+                int nlinks = 0;
+                Enumeration<String> key = links.keys();
+                while(key.hasMoreElements())
                 {
-                    int nlinks = 0;
-                    Enumeration<String> key = links.keys();
-                    while(key.hasMoreElements())
-                    {
-                        String k = key.nextElement();
-                        nlinks += links.get(k).size();
-                    }
-                    tmp += "I am also keeping track of " + nlinks + " dependencies between scores. ";
+                    String k = key.nextElement();
+                    nlinks += links.get(k).size();
                 }
+                tmp += "I am also keeping track of " + nlinks + " dependencies between scores. ";
+            }
 
-                {
-                    int nfacts = 0;
-                    Enumeration<String> key = facts.keys();
-                    while(key.hasMoreElements())
-                    {
-                        String k = key.nextElement();
-                        nfacts += facts.get(k).size();
-                    }
-                    tmp += "Finally, I have been trained to recite " + nfacts + " facts about " + facts.size() + " topics! Isn't THAT impressive?";
-                    local_sendMessage(channel, line_header() + tmp);
-                }
-
-            } else if(command.endsWith("?"))
             {
-                // magic 8-ball response
-                Random gen = new Random();
-                Vector<String> responses = facts.get(MAGIC_RESPONSE_CATEGORY);
-                if(responses.size() == 0)
+                int nfacts = 0;
+                Enumeration<String> key = facts.keys();
+                while(key.hasMoreElements())
                 {
-                    local_sendMessage(channel, line_header() + sender + ": I'm out of responses. :( try adding some to fact category " + MAGIC_RESPONSE_CATEGORY);
-                } else
-                {
-                    String response = responses.elementAt(gen.nextInt(responses.size()));
-                    local_sendMessage(channel, line_header() + sender + ": " + response);
+                    String k = key.nextElement();
+                    nfacts += facts.get(k).size();
                 }
+                tmp += "Finally, I have been trained to recite " + nfacts + " facts about " + facts.size() + " topics! Isn't THAT impressive?";
+                local_sendMessage(channel, line_header() + tmp);
+            }
+
+        } else if(command.endsWith("?"))
+        {
+            // magic 8-ball response
+            Random gen = new Random();
+            Vector<String> responses = facts.get(MAGIC_RESPONSE_CATEGORY);
+            if(responses.size() == 0)
+            {
+                local_sendMessage(channel, line_header() + sender + ": I'm out of responses. :( try adding some to fact category " + MAGIC_RESPONSE_CATEGORY);
             } else
             {
-                local_sendMessage(sender, line_header() + "sorry, but I didn't understand your command!");
+                String response = responses.elementAt(gen.nextInt(responses.size()));
+                local_sendMessage(channel, line_header() + sender + ": " + response);
             }
+        } else
+        {
+            local_sendMessage(sender, line_header() + "sorry, but I didn't understand your command!");
         }
     }
     
@@ -1231,7 +1273,7 @@ public class PPbot extends PircBot
             {
                 System.out.println("disconnected!");
                 connect("irc.freenode.net");
-                joinChannel("#" + channel);
+                joinChannel("#" + channel, "password");
             } catch(Exception e)
             {
                 System.out.println("failed to reconnect");
@@ -1465,7 +1507,7 @@ public class PPbot extends PircBot
         // let's be social! and join the channel
         if(channel.contains(inviteChannel) || inviteChannel.contains(channel))
         {
-            joinChannel(inviteChannel);
+            joinChannel(inviteChannel, "password");
             local_sendMessage(inviteChannel, "Hi guys. In case you were wondering, it's " + source + "'s fault I'm here.");
         }
     }
@@ -1649,4 +1691,38 @@ public class PPbot extends PircBot
             pendingParseResults.clear();
         }
     }
+
+    public boolean isChannelOp(String user)
+    {
+        User[] users = getUsers("#"+channel);
+        for(int i = 0; i < users.length; i++)
+        {
+            if(users[i].getNick().equals(user))
+            {
+                return users[i].isOp();
+            }
+        }
+
+        return false;
+    }
+
+    /*
+    protected void onTopic(String channel, String topic, String user, long date, boolean changed)
+    {
+        if(!changed)
+            return;
+
+        String[] parts = topic.split("\\s");
+
+        // parse out any links in the topic
+        for(String item : parts)
+        {
+            try
+            {
+                URL url = new URL(item);
+                // if that worked, we have a URL
+
+        }
+    }
+    */
 }
