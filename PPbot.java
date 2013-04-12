@@ -97,6 +97,13 @@ public class PPbot extends PircBot
     Timer pendingResultsTimer;
     static final long PENDING_RESULTS_TIMER_MILLIS = 15 * 1000; // 15 seconds
 
+    class LastSeen
+    {
+        long time;
+        String message;
+    }
+    Hashtable<String, LastSeen> seenInfo = new Hashtable<String, LastSeen>();
+
     class Reminder
     {
         long created;
@@ -855,6 +862,40 @@ public class PPbot extends PircBot
                 local_sendMessage(channel, line_header() + tmp);
             }
 
+        } else if(command.startsWith("where's") || command.startsWith("wheres") || command.startsWith("seen"))
+        {
+            boolean hit = false;
+
+            String sub = "";
+            if(command.startsWith("where's"))
+            {
+                sub = command.substring(8).trim();
+            } else if(command.startsWith("wheres"))
+            {
+                sub = command.substring(7).trim();
+            } else if(command.startsWith("seen"))
+            {
+                sub = command.substring(5).trim();
+            }
+
+            Enumeration<String> keys = seenInfo.keys();
+            while(keys.hasMoreElements())
+            {
+                String name = keys.nextElement();
+                if(name.toLowerCase().contains(sub.toLowerCase()))
+                {
+                    SimpleDateFormat fmt = new SimpleDateFormat("hh:mm aa 'at' MM/dd/yyyy ");
+
+                    hit = true;
+                    local_sendMessage(channel, line_header() + "saw " + name + " at " + fmt.format(new Date(seenInfo.get(name).time)) + ", when they said... \"" + seenInfo.get(name).message + "\"");
+                }
+            }
+
+            if(!hit)
+            {
+                local_sendMessage(channel, line_header() + "haven't seen " + sub + ", sorry bro");
+            }
+            
         } else if(command.endsWith("?"))
         {
             // magic 8-ball response
@@ -897,6 +938,14 @@ public class PPbot extends PircBot
         }
 
         checkReminders(sender);
+
+        // update LastSeen
+        {
+            LastSeen record = new LastSeen();
+            record.time = (new Date()).getTime();
+            record.message = message;
+            seenInfo.put(sender, record);
+        }
 
         for(int i = 0; i < blacklistUsers.length; i++)
         {
@@ -1468,8 +1517,6 @@ public class PPbot extends PircBot
         */
 
         boolean needsSplit = message.length() > MAX_MESSAGE_LEN;
-
-        System.out.println("maxline = " + MAX_MESSAGE_LEN);
 
         if(!needsSplit)
         {
