@@ -882,6 +882,11 @@ public class PPbot extends PircBot
                 sub = command.substring(5).trim();
             }
 
+            if(sub.endsWith("?"))
+            {
+                sub = sub.substring(0, sub.length()-1).trim();
+            }
+
             Enumeration<String> keys = seenInfo.keys();
             while(keys.hasMoreElements())
             {
