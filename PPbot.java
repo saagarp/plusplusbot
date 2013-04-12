@@ -103,6 +103,7 @@ public class PPbot extends PircBot
         String message;
     }
     Hashtable<String, LastSeen> seenInfo = new Hashtable<String, LastSeen>();
+    static final long SEEN_WINDOW_MILLISECONDS = 48 * 60 * 60 * 1000; // 24 hours
 
     class Reminder
     {
@@ -865,6 +866,9 @@ public class PPbot extends PircBot
         } else if(command.startsWith("where's") || command.startsWith("wheres") || command.startsWith("seen"))
         {
             boolean hit = false;
+            LastSeen latest = new LastSeen();
+            String latestName = "";
+            latest.time = 0;
 
             String sub = "";
             if(command.startsWith("where's"))
@@ -884,16 +888,22 @@ public class PPbot extends PircBot
                 String name = keys.nextElement();
                 if(name.toLowerCase().contains(sub.toLowerCase()))
                 {
-                    SimpleDateFormat fmt = new SimpleDateFormat("hh:mm aa 'at' MM/dd/yyyy ");
-
                     hit = true;
-                    local_sendMessage(channel, line_header() + "saw " + name + " at " + fmt.format(new Date(seenInfo.get(name).time)) + ", when they said... \"" + seenInfo.get(name).message + "\"");
+                    if(seenInfo.get(name).time > latest.time)
+                    {
+                        latest = seenInfo.get(name);
+                        latestName = name;
+                    }
                 }
             }
 
             if(!hit)
             {
                 local_sendMessage(channel, line_header() + "haven't seen " + sub + ", sorry bro");
+            } else
+            {
+                SimpleDateFormat fmt = new SimpleDateFormat("hh:mm aa 'at' MM/dd/yyyy ");
+                local_sendMessage(channel, line_header() + "saw " + latestName + " at " + fmt.format(new Date(latest.time)) + ", when they said... \"" + latest.message + "\"");
             }
             
         } else if(command.endsWith("?"))
@@ -945,6 +955,17 @@ public class PPbot extends PircBot
             record.time = (new Date()).getTime();
             record.message = message;
             seenInfo.put(sender, record);
+
+            // drop all old records
+            Enumeration<String> keys = seenInfo.keys();
+            while(keys.hasMoreElements())
+            {
+                String name = keys.nextElement();
+                if(seenInfo.get(name).time + SEEN_WINDOW_MILLISECONDS < ((new Date()).getTime()))
+                {
+                    seenInfo.remove(name);
+                }
+            }
         }
 
         for(int i = 0; i < blacklistUsers.length; i++)
