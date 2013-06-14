@@ -42,7 +42,10 @@ public class PPbot extends PircBot
     {"beatsake",        "false",    "hot.pot",      "beatsake.mentions.hot.pot",    "1"},
     {"corioliss",       "false",    "ducks",        "corioliss.ducks",              "1"},
     {"",                "false",    "seems good bro", "bro.yin",                    "1"},
-    {"",                "false",    "seems bad bro", "bro.yang",                   "1"} };
+    {"",                "false",    "seems bad bro", "bro.yang",                   "1"},
+    {"",                "false",    "tolerance break", "lies",                   "1"},
+    {"",                "false",    "sgb", "bro.yin",                    "1"},
+    {"",                "false",    "sbb", "bro.yang",                   "1"} };
 
     final String MAGIC_RESPONSE_CATEGORY = "magic8ball";
     final String[] blacklistUsers = {"dongbot"};
@@ -53,6 +56,12 @@ public class PPbot extends PircBot
     static final int MAX_MESSAGE_LEN = 400;
 
     static final String KEY_REGEX = "[\\[\\]\\w\\._\\-|\\{\\}]{2,}";
+
+    static final String FRIDAY = " _____ ____  ___ ____    _ __   ___ _ _ \n" +
+                                 "|  ___|  _ \\|_ _|  _ \\  / \\ \\ / / | | |\n" +
+                                 "| |_  | |_) || || | | |/ _ \\ V /| | | |\n" +
+                                 "|  _| |  _ < | || |_| / ___ \\| | |_|_|_|\n" +
+                                 "|_|   |_| \\_\\___|____/_/   \\_\\_| (_|_|_)";
 
     class Parse
     {
@@ -96,6 +105,9 @@ public class PPbot extends PircBot
     Vector<Parse> pendingParseResults = new Vector<Parse>();
     Timer pendingResultsTimer;
     static final long PENDING_RESULTS_TIMER_MILLIS = 15 * 1000; // 15 seconds
+
+    long lastFridayMessage = 0;
+    static final long FRIDAY_TIMEOUT_MILLIS = 15 * 60 * 1000; // 15 minutes
 
     class LastSeen
     {
@@ -158,6 +170,7 @@ public class PPbot extends PircBot
     };
 
     String channel;
+    String channelpw;
     String data_file;
     String data_file_backup;
     String link_file;
@@ -165,8 +178,9 @@ public class PPbot extends PircBot
     String fact_file;
     String fact_file_backup;
 
-    public PPbot(String channel, String name, String password) {
+    public PPbot(String channel, String channelpw, String name, String password) {
         this.channel = channel;
+        this.channelpw = channelpw;
         data_file = channel + ".dat";
         data_file_backup = channel + ".dat.bak";
         link_file = channel + ".link";
@@ -364,6 +378,26 @@ public class PPbot extends PircBot
             {
                 local_sendMessage(sender, line_header() + "sorry, but I didn't understand the argument to that command!");
                 e.printStackTrace();
+            }
+
+        } else if(command.equals("friday!"))
+        {
+            long time = (new Date()).getTime();
+            if(time < (lastFridayMessage + FRIDAY_TIMEOUT_MILLIS))
+            {
+                kick(channel, sender, "too soon");
+            } else if((new Date()).getDay() != 5)
+            {
+                kick(channel, sender, "it's not Friday, fuck off");
+            } else
+            {
+                lastFridayMessage = time;
+                // send lines sequentually
+                StringTokenizer st = new StringTokenizer(FRIDAY, "\n");
+                while(st.hasMoreTokens())
+                {
+                    sendMessage(channel, st.nextToken());
+                }
             }
 
         } else if(command.startsWith("??"))
@@ -1348,7 +1382,7 @@ public class PPbot extends PircBot
             {
                 System.out.println("disconnected!");
                 connect("irc.freenode.net");
-                joinChannel("#" + channel, "password");
+                joinChannel("#" + channel, channelpw);
             } catch(Exception e)
             {
                 System.out.println("failed to reconnect");
@@ -1580,7 +1614,7 @@ public class PPbot extends PircBot
         // let's be social! and join the channel
         if(channel.contains(inviteChannel) || inviteChannel.contains(channel))
         {
-            joinChannel(inviteChannel, "password");
+            joinChannel(inviteChannel, channelpw);
             local_sendMessage(inviteChannel, "Hi guys. In case you were wondering, it's " + source + "'s fault I'm here.");
         }
     }

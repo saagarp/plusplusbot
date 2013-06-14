@@ -1,1 +1,3 @@
-lol hi
+plusplusbot is an IRC karmabot that I wrote and maintain primarily for entertainment value. The bot has no real-world application, the database format really could use some work, and most of the updates nowadays are to prevent the bot spamming too much in an actual channel.
+
+It's built on top of pircbot, the first IRC bot library I found for a language I'm familiar with.
